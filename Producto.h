@@ -24,6 +24,8 @@ private:
     std::string name;
     float amount;
 public:
+    Producto();
+    ~Producto();
     void setCreated(int anho, int mes, int dia);
     void setPayment(int payment);
     void setStore_fk(int store_fk);

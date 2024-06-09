@@ -1,0 +1,16 @@
+# ninja log v6
+2	29	1717900038057472172	build.ninja	fd45c939915ce254
+2	1076	1717899465953649885	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+3	356	1717896929302991319	CMakeFiles/TrabajoParalela.dir/Producto.cpp.o	cb037cecfb6a4dd9
+1076	1145	1717899467027741053	TrabajoParalela	57040050bb0ce4f8
+1	27	1717900038057472172	build.ninja	fd45c939915ce254
+3	767	1717900089388558962	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+767	842	1717900090151619623	TrabajoParalela	57040050bb0ce4f8
+2	894	1717900573164632183	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+894	966	1717900574056701867	TrabajoParalela	57040050bb0ce4f8
+2	917	1717901476058629545	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+917	985	1717901476973698630	TrabajoParalela	57040050bb0ce4f8
+2	636	1717901699040514758	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+636	707	1717901699674562897	TrabajoParalela	57040050bb0ce4f8
+3	654	1717901732534058510	CMakeFiles/TrabajoParalela.dir/main.cpp.o	4ad5d4b5f4b7f3ec
+654	717	1717901733185107972	TrabajoParalela	57040050bb0ce4f8
