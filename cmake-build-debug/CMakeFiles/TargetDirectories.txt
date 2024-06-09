@@ -1,0 +1,3 @@
+/home/jorge/Escritorio/Proyectos/TrabajoParalela/cmake-build-debug/CMakeFiles/TrabajoParalela.dir
+/home/jorge/Escritorio/Proyectos/TrabajoParalela/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/jorge/Escritorio/Proyectos/TrabajoParalela/cmake-build-debug/CMakeFiles/rebuild_cache.dir
