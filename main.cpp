@@ -76,5 +76,7 @@ int main() {
     std::cout << "clock t = " << t << std::endl;
     std::cout << "length = " << i << std::endl;
     archivo.close();
+
+    std::cout << "test" << std::endl;
     return 0;
 }
