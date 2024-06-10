@@ -125,6 +125,26 @@
 			"isCMake" : true,
 			"isExternal" : true,
 			"path" : "/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/CMakeCommonLanguageInclude.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/FindOpenMP.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/CMakeParseImplicitLinkInfo.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/FindPackageHandleStandardArgs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/FindPackageMessage.cmake"
 		}
 	],
 	"kind" : "cmakeFiles",

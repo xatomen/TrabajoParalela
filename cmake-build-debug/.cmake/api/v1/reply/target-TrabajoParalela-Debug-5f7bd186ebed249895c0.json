@@ -10,11 +10,15 @@
 	{
 		"commands" : 
 		[
-			"add_executable"
+			"add_executable",
+			"set_property",
+			"find_package",
+			"target_link_libraries"
 		],
 		"files" : 
 		[
-			"CMakeLists.txt"
+			"CMakeLists.txt",
+			"/snap/clion/277/bin/cmake/linux/x64/share/cmake-3.28/Modules/FindOpenMP.cmake"
 		],
 		"nodes" : 
 		[
@@ -24,7 +28,29 @@
 			{
 				"command" : 0,
 				"file" : 0,
+				"line" : 8,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
 				"line" : 6,
+				"parent" : 0
+			},
+			{
+				"file" : 1,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 619,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 14,
 				"parent" : 0
 			}
 		]
@@ -36,6 +62,10 @@
 			[
 				{
 					"fragment" : "-g -fdiagnostics-color=always"
+				},
+				{
+					"backtrace" : 5,
+					"fragment" : "-fopenmp"
 				}
 			],
 			"language" : "CXX",
@@ -66,6 +96,16 @@
 			{
 				"fragment" : "",
 				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libpthread.a",
+				"role" : "libraries"
 			}
 		],
 		"language" : "CXX"
@@ -91,9 +131,7 @@
 			"name" : "Header Files",
 			"sourceIndexes" : 
 			[
-				2,
-				3,
-				4
+				2
 			]
 		}
 	],
@@ -114,16 +152,6 @@
 		{
 			"backtrace" : 1,
 			"path" : "Producto.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "rapidcsv.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "csv.h",
 			"sourceGroupIndex" : 1
 		}
 	],
