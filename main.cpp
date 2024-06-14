@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <omp.h>
+#include <map>
 
 int main() {
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
@@ -15,12 +16,14 @@ int main() {
     char comilla = '\"';
     getline(archivo, linea);
 
-    std::vector<Producto*> Productos;    //Declaramos el vector que alojará los objetos producto
+//    std::vector<Producto*> Productos;    //Declaramos el vector que alojará los objetos producto
     clock_t t;
     t = clock();
     int i = 0;
     
-    while(getline(archivo,linea)/* && i<=1500000*/){
+    std::map<std::string, std::map<int, int>> MapaProductos;
+    
+    while(getline(archivo,linea) && i<=15000000){
         //Si la línea posee un largo "típico", la analizamos
         if(linea[1]=='2'){
             //        if(i==1512408) std::cout << linea << std::endl;
@@ -71,16 +74,13 @@ int main() {
                 Producto* producto;                      //Declaramos el objeto producto
                 producto = new Producto();
                 producto->setCreated(anho, mes, dia);    //Setteamos la fecha
-                //        producto.setPayment(payment);
-                //        producto.setStore_fk(store_fk);
-                                producto->setSku(sku);                   //Setteamos el sku
-                //        producto.setQuantity(quantity);
-                //        producto.setName(name);
-                                producto->setAmount(amount);             //Setteamos el amount
-                //        std::cout << "objeto listo" << std::endl;
-                                Productos.push_back(producto);  //Guardamos el objeto en el vector Productos
-                                free(producto);             //Liberamos la memoria utilizada por el objeto
-                //        std::cout << producto->getAmount() << std::endl;
+                producto->setSku(sku);                   //Setteamos el sku
+                producto->setAmount(amount);             //Setteamos el amount
+                
+//                Productos.push_back(producto);  //Guardamos el objeto en el vector Productos
+//                MapaProductos.insert(std::pair<int,std::string>(i,sku));
+                MapaProductos[sku][anho]++;
+//                free(producto);             //Liberamos la memoria utilizada por el objeto
             }
         }
         //Caso contrario, saltamos la línea
@@ -98,7 +98,19 @@ int main() {
 
     getchar();
     
-    std::cout << "Cantidad de objetos = " << Productos.size() << std::endl;
+//    std::cout << "Cantidad de objetos = " << Productos.size() << std::endl;
+
+//    std::map<int,std::string>::iterator iterador;
+//    for(iterador = MapaProductos.begin(); iterador != MapaProductos.end(); iterador++){
+//        std::cout << iterador->first << " | " << iterador->second << std::endl;
+//    }
+    for(const auto& Sku : MapaProductos){
+        std::cout << Sku.first << " | " << std::endl;
+        for(const auto& Anho : Sku.second){
+            if(Anho.first==2022)
+                std::cout << "\tAnho: " << Anho.first << " -> " << Anho.second << std::endl;
+        }
+    }
     
     getchar();
 
