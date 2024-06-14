@@ -14,14 +14,14 @@ private:
     int anho;
     int mes;
     int dia;
-    int payment;
-    int store_fk;
-    std::string seller;
-    std::string category;
-    std::string delivery_type;
+//    int payment;
+//    int store_fk;
+//    std::string seller;
+//    std::string category;
+//    std::string delivery_type;
     std::string sku;
-    int quantity;
-    std::string name;
+//    int quantity;
+//    std::string name;
     float amount;
 public:
     Producto();
