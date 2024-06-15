@@ -14,34 +14,36 @@ int main() {
     std::string linea;
     char delimitador = ';';
     char comilla = '\"';
-    getline(archivo, linea);
-
-//    std::vector<Producto*> Productos;    //Declaramos el vector que alojará los objetos producto
-    clock_t t;
-    t = clock();
+    
+    getline(archivo, linea);    //Leemos el "encabezado" del texto
+    
+//    clock_t t;
+//    t = clock();
     int i = 0;
     
+    /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses*/
     std::map<std::string, std::map<int,std::map<int,int>>> MapaProductos;
     
     while(getline(archivo,linea)){
-        //Si la línea posee un largo "típico", la analizamos
+        //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
         if(linea[1]=='2'){
-            //        if(i==1512408) std::cout << linea << std::endl;
-            //        if(i==1512409) std::cout << linea << std::endl;
-            std::string original = linea;
+            /*---- Cargamos la línea en memoria como stream ----*/
+//            std::string original = linea; //String para realizar trazas
             std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
             //        std::cout << "created " << linea << std::endl;
             
+            /*---- Leer Fecha ----*/
             getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
+            //Solo utilizamos año y mes
             int anho = stoi(linea.substr(1,4)); //Extraer el año
             int mes = stoi(linea.substr(6,2));  //Extraer el mes
-            int dia = stoi(linea.substr(9,2));  //Extraer el día
             
             /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
             for(int j=0; j<5; j++){
                 getline(stream,linea,delimitador);
             }
-
+            
+            /*---- Leer SKU del producto ----*/
             //        std::cout << "sku" << linea << std::endl;
             std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
             getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
@@ -49,79 +51,53 @@ int main() {
             /*Nos saltamos los siguientes dos campos que no utilizaremos por el momento*/
             getline(stream,linea,delimitador);  //Cantidad
             std::string name;
-            /*Si no tiene nombre, no tiene comillas, por lo tanto, si el siguiente carácter es una comilla, por lo que buscamos comilla y buscamos el delimitador*/
+            /*
+             * Para el campo nombre:
+             * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
+             * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)
+            */
             if(linea[0]==comilla){
                 getline(stream,name, comilla);     //Buscamos las primeras comillas
                 getline(stream,name, comilla);     //Saltamos a las siguientes comillas
             }
             getline(stream,name,delimitador);  //Nombre
-
+            
+            /*---- Leer amount/costo del producto ----*/
             //        std::cout << "amount" << linea << std::endl;
             std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
             getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
-            
-            //Si la linea tiene problemas de estructura, descartamos la línea
+            /*
+             * Si la línea no tiene problemas en su estructura, entonces todo ok
+             * Si la línea tiene problemas de estructura (ejemplo: tiene un enter en el nombre), descartamos la línea
+             * */
             if(str_amount[0]!=comilla){
-//                std::cout << "linea: " << i+1 << " original -> " << original << std::endl;
-//                std::cout << "i = " << i << " str_amount " << str_amount << std::endl;
-//                std::cout << "amount nulo..." << std::endl;
+//                std::cout << "linea: " << i+2 << " original -> " << original << std::endl;
 //                getchar();
             }
-                //Si todo sale bien, pasamos al else y guardamos el objeto en memoria
+            //Si todo esta bien, pasamos al else y guardamos el producto en el map
             else{
+                //Por ahora no utilizamos el amount
                 str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
                 float amount = stof(str_amount);                                //Obtenemos el amount en float
-                Producto* producto;                      //Declaramos el objeto producto
-                producto = new Producto();
-                producto->setCreated(anho, mes, dia);    //Setteamos la fecha
-                producto->setSku(sku);                   //Setteamos el sku
-                producto->setAmount(amount);             //Setteamos el amount
                 
-//                Productos.push_back(producto);  //Guardamos el objeto en el vector Productos
-//                MapaProductos.insert(std::pair<int,std::string>(i,sku));
                 MapaProductos[sku][anho][mes]++;
-                free(producto);             //Liberamos la memoria utilizada por el objeto
 //                std::cout << "sku: " << producto->getSku() << " - amount: " << producto->getAmount() << std::endl;
             }
         }
-        //Caso contrario, saltamos la línea
+        //Caso contrario, saltamos la línea (primer if)
         else{
 //            std::cout << "sale" << std::endl;
         }
-
-        i++;
+        i++;    //Incrementamos el contador
     }
 
-    t = clock() - t;
-    std::cout << "clock t = " << t << std::endl;
-    std::cout << "length = " << i << std::endl;
+//    t = clock() - t;
+//    std::cout << "clock t = " << t << std::endl;
+//    std::cout << "length = " << i << std::endl;
     archivo.close();
 
     getchar();
     
-//    std::cout << "Cantidad de objetos = " << Productos.size() << std::endl;
-
-//    std::map<int,std::string>::iterator iterador;
-//    for(iterador = MapaProductos.begin(); iterador != MapaProductos.end(); iterador++){
-//        std::cout << iterador->first << " | " << iterador->second << std::endl;
-//    }
-
-    /*For para descartar años de los productos que no pertenecen a la canasta básica*/
-    /*for(const auto& Sku : MapaProductos){
-        std::cout << Sku.first << " | " << std::endl;
-        for(const auto& Anho : Sku.second){     //Revisamos si el
-                std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
-                if(Anho.second.size()==12){
-                    for(const auto& Mes : Anho.second){
-                        std::cout << "\t\tMes: " << Mes.first << " -> " << Mes.second << std::endl;
-                    }
-                }
-                else{
-//                    std::cout << "\t\tNo pertenece a la canasta básica -> meses: " << Anho.second.size() << std::endl;
-                
-                }
-        }
-    }*/
     /*Recorrer y eliminar años con menos de 12 meses*/
     for (auto& Sku : MapaProductos) {
 //        std::cout << Sku.first << " | " << std::endl;
@@ -155,9 +131,6 @@ int main() {
             }
         }
     }
-    
-    
-    
     
     getchar();
 
