@@ -101,23 +101,25 @@ int main() {
     /*Recorrer y eliminar años con menos de 12 meses*/
     for (auto& Sku : MapaProductos) {
 //        std::cout << Sku.first << " | " << std::endl;
-        auto it = Sku.second.begin();
-        while (it != Sku.second.end()) {
-            if (it->second.size() != 12) {
+        auto it = Sku.second.begin();   //Iterador
+        while(it != Sku.second.end()){            //Iteramos mientras no lleguemos al final
+            if(it->second.size() != 12){          //Si el año no tiene 12 meses, lo eliminamos
                 it = Sku.second.erase(it); // Eliminar año y avanzar el iterador
-            } else {
-                ++it; // Solo avanzar el iterador
+            }
+            else{
+                ++it; // Solo incrementamos el iterador
             }
         }
     }
     
     /*Recorrer y eliminar SKU sin años*/
-    auto skuIt = MapaProductos.begin();
-    while (skuIt != MapaProductos.end()) {
-        if (skuIt->second.empty()) {
+    auto skuIt = MapaProductos.begin(); //Iterador
+    while(skuIt != MapaProductos.end()){          //Iteramos mientras no lleguemos al final
+        if(skuIt->second.empty()){                 //Si el SKU no tiene un elemento "par", entonces lo eliminamos
             skuIt = MapaProductos.erase(skuIt); // Eliminar SKU y avanzar el iterador
-        } else {
-            ++skuIt; // Solo avanzar el iterador
+        }
+        else{
+            ++skuIt; // Solo incrementamos el iterador
         }
     }
     
