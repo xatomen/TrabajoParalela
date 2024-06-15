@@ -21,9 +21,9 @@ int main() {
     t = clock();
     int i = 0;
     
-    std::map<std::string, std::map<int, int>> MapaProductos;
+    std::map<std::string, std::map<int,std::map<int,int>>> MapaProductos;
     
-    while(getline(archivo,linea) && i<=15000000){
+    while(getline(archivo,linea)){
         //Si la línea posee un largo "típico", la analizamos
         if(linea[1]=='2'){
             //        if(i==1512408) std::cout << linea << std::endl;
@@ -62,7 +62,7 @@ int main() {
             
             //Si la linea tiene problemas de estructura, descartamos la línea
             if(str_amount[0]!=comilla){
-//                std::cout << "original " << original << std::endl;
+//                std::cout << "linea: " << i+1 << " original -> " << original << std::endl;
 //                std::cout << "i = " << i << " str_amount " << str_amount << std::endl;
 //                std::cout << "amount nulo..." << std::endl;
 //                getchar();
@@ -79,8 +79,9 @@ int main() {
                 
 //                Productos.push_back(producto);  //Guardamos el objeto en el vector Productos
 //                MapaProductos.insert(std::pair<int,std::string>(i,sku));
-                MapaProductos[sku][anho]++;
-//                free(producto);             //Liberamos la memoria utilizada por el objeto
+                MapaProductos[sku][anho][mes]++;
+                free(producto);             //Liberamos la memoria utilizada por el objeto
+//                std::cout << "sku: " << producto->getSku() << " - amount: " << producto->getAmount() << std::endl;
             }
         }
         //Caso contrario, saltamos la línea
@@ -104,13 +105,59 @@ int main() {
 //    for(iterador = MapaProductos.begin(); iterador != MapaProductos.end(); iterador++){
 //        std::cout << iterador->first << " | " << iterador->second << std::endl;
 //    }
+
+    /*For para descartar años de los productos que no pertenecen a la canasta básica*/
+    /*for(const auto& Sku : MapaProductos){
+        std::cout << Sku.first << " | " << std::endl;
+        for(const auto& Anho : Sku.second){     //Revisamos si el
+                std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
+                if(Anho.second.size()==12){
+                    for(const auto& Mes : Anho.second){
+                        std::cout << "\t\tMes: " << Mes.first << " -> " << Mes.second << std::endl;
+                    }
+                }
+                else{
+//                    std::cout << "\t\tNo pertenece a la canasta básica -> meses: " << Anho.second.size() << std::endl;
+                
+                }
+        }
+    }*/
+    /*Recorrer y eliminar años con menos de 12 meses*/
+    for (auto& Sku : MapaProductos) {
+//        std::cout << Sku.first << " | " << std::endl;
+        auto it = Sku.second.begin();
+        while (it != Sku.second.end()) {
+            if (it->second.size() != 12) {
+                it = Sku.second.erase(it); // Eliminar año y avanzar el iterador
+            } else {
+                ++it; // Solo avanzar el iterador
+            }
+        }
+    }
+    
+    /*Recorrer y eliminar SKU sin años*/
+    auto skuIt = MapaProductos.begin();
+    while (skuIt != MapaProductos.end()) {
+        if (skuIt->second.empty()) {
+            skuIt = MapaProductos.erase(skuIt); // Eliminar SKU y avanzar el iterador
+        } else {
+            ++skuIt; // Solo avanzar el iterador
+        }
+    }
+    
+    /*Productos de la canasta básica*/
     for(const auto& Sku : MapaProductos){
         std::cout << Sku.first << " | " << std::endl;
         for(const auto& Anho : Sku.second){
-            if(Anho.first==2022)
-                std::cout << "\tAnho: " << Anho.first << " -> " << Anho.second << std::endl;
+            std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
+            for(const auto& Mes : Anho.second){
+                    std::cout << "\t\tMes: " << Mes.first << " -> " << Mes.second << std::endl;
+            }
         }
     }
+    
+    
+    
     
     getchar();
 
