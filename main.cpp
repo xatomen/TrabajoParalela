@@ -21,7 +21,6 @@ int main() {
     
 //    clock_t t;
 //    t = clock();
-    int i = 0;
     
     /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses*/
     std::map<std::string, std::map<int,std::map<int,int>>> MapaProductos;
@@ -29,73 +28,74 @@ int main() {
     //mapa fecha-pesos para excel
     //usar mediana para los precios (criterio) y la variacion de precios (mediana)
     
+    /*Utilizaremos este while para obtener la cantidad de líneas, para luego paralelizar la lectura*/
+    int k=0;
+    std::ifstream arch_csv("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
+    std::string line;
+    while(getline(arch_csv,line)){
+        k++;
+    }
+    std::cout << "k: " << k << std::endl;
+    getchar();
+    
+    /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
+    int i = 0;
     while(getline(archivo,linea)){
         //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
-        if(linea[1]=='2'){
-            /*---- Cargamos la línea en memoria como stream ----*/
-//            std::string original = linea; //String para realizar trazas
-            std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
-            //        std::cout << "created " << linea << std::endl;
-            
-            /*---- Leer Fecha ----*/
-            getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
-            //Solo utilizamos año y mes
-            int anho = stoi(linea.substr(1,4)); //Extraer el año
-            int mes = stoi(linea.substr(6,2));  //Extraer el mes
-            
-            /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
-            for(int j=0; j<5; j++){
-                getline(stream,linea,delimitador);
-            }
-            
-            /*---- Leer SKU del producto ----*/
-            //        std::cout << "sku" << linea << std::endl;
-            std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
-            getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
-            
-            /*Nos saltamos los siguientes dos campos que no utilizaremos por el momento*/
-            getline(stream,linea,delimitador);  //Cantidad
-            std::string name;
+        /*---- Cargamos la línea en memoria como stream ----*/
+        std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
+        
+        /*---- Leer Fecha ----*/
+        getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
+        //Solo utilizamos año y mes
+        int anho = stoi(linea.substr(1,4)); //Extraer el año
+        int mes = stoi(linea.substr(6,2));  //Extraer el mes
+        
+        /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
+        for(int j=0; j<5; j++){
+            getline(stream,linea,delimitador);
+        }
+        
+        /*---- Leer SKU del producto ----*/
+        std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
+        getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
+        
+        /*Nos saltamos los siguientes dos campos que no utilizaremos por el momento*/
+        getline(stream,linea,delimitador);  //Cantidad
+        
+        /*
+         * Para el campo nombre:
+         * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
+         * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)
+        */
+        std::string name;
+        if(linea[0]==comilla){
+            getline(stream,name, comilla);     //Buscamos las primeras comillas
+            getline(stream,name, comilla);      //Buscamos las segundas comillas
             /*
-             * Para el campo nombre:
-             * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
-             * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)
-            */
-            if(linea[0]==comilla){
-                getline(stream,name, comilla);     //Buscamos las primeras comillas
-                getline(stream,name, comilla);     //Saltamos a las siguientes comillas
-            }
-            getline(stream,name,delimitador);  //Nombre
-            
-            /*---- Leer amount/costo del producto ----*/
-            //        std::cout << "amount" << linea << std::endl;
-            std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
-            getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
-            /*
-             * Si la línea no tiene problemas en su estructura, entonces todo ok
-             * Si la línea tiene problemas de estructura (ejemplo: tiene un enter en el nombre), descartamos la línea
+             *Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar
              */
-            if(str_amount[0]!=comilla){
-//                std::cout << "linea: " << i+2 << " original -> " << original << std::endl;
-//                getchar();
-            }
-            //Si todo esta bien, pasamos al else y guardamos el producto en el map
-            else{
-                //Por ahora no utilizamos el amount
-                str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
-                float amount = stof(str_amount);                                //Obtenemos el amount en float
-                
-                MapaProductos[sku][anho][mes]++;
-//                std::cout << "sku: " << producto->getSku() << " - amount: " << producto->getAmount() << std::endl;
+            while(!stream.good()){  //Mientras el stream no sea correcto, no saldremos del while
+                i++;    //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
+                getline(archivo,linea); //Saltamos a la siguiente línea
+                stream.clear();                             //Limpiamos el stream
+                stream.str(linea);                       //Asignamos la nueva línea
+                getline(stream,name, comilla);  //Volvemos a buscar la comilla faltante
             }
         }
-        //Caso contrario, saltamos la línea (primer if)
-        else{
-//            std::cout << "sale" << std::endl;
-        }
+        getline(stream,name,delimitador);  //Nombre
+        
+        /*---- Leer amount/costo del producto ----*/
+        std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
+        getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
+        //Por ahora no utilizamos el amount
+        str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
+        float amount = stof(str_amount);                                //Obtenemos el amount en float
+        
+        MapaProductos[sku][anho][mes]++;
         i++;    //Incrementamos el contador
     }
-
+    std::cout << "listo" << std::endl;
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
 //    std::cout << "length = " << i << std::endl;
