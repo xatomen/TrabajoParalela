@@ -30,9 +30,10 @@ int main() {
 //                getchar();
                 int colCount = 2;
                 const char* cellValue;
-                for (int row = /*7*/300; row <= rowCount; row++) {
+                for (int row = /*7*/7; row <= /*rowCount*/3000; row++) {
                     for (int col = 1; col < colCount; col++) {
-                         cellValue = sheet->readStr(row, col); // Leer el valor de la celda como cadena
+//                         cellValue = sheet->readStr(row, col); // Leer el valor de la celda como cadena
+                         double cellValue = sheet->readNum(row,col);
                         
 //                        if (cellValue) {
                             std::cout << "row "<< row << " -> " << cellValue << "\t"; // Imprimir el valor de la celda
