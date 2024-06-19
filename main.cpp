@@ -8,6 +8,8 @@
 #include <sstream>
 #include <omp.h>
 #include <map>
+/*TRABAJO FINAL PRESENTACION -> metodología que usamos de proyecto -> justificar los porqués -> hipótesis: existe una distorsión en el cálculo de la inflación - informe del proyecto*/
+/*revision en 4gb de ram*/
 
 int main() {
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
@@ -23,6 +25,9 @@ int main() {
     
     /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses*/
     std::map<std::string, std::map<int,std::map<int,int>>> MapaProductos;
+    
+    //mapa fecha-pesos para excel
+    //usar mediana para los precios (criterio) y la variacion de precios (mediana)
     
     while(getline(archivo,linea)){
         //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
@@ -69,7 +74,7 @@ int main() {
             /*
              * Si la línea no tiene problemas en su estructura, entonces todo ok
              * Si la línea tiene problemas de estructura (ejemplo: tiene un enter en el nombre), descartamos la línea
-             * */
+             */
             if(str_amount[0]!=comilla){
 //                std::cout << "linea: " << i+2 << " original -> " << original << std::endl;
 //                getchar();
@@ -98,12 +103,12 @@ int main() {
 
     getchar();
     
-    /*Recorrer y eliminar años con menos de 12 meses*/
+    /*Recorrer y eliminar años con menos de 4 meses*/
     for (auto& Sku : MapaProductos) {
 //        std::cout << Sku.first << " | " << std::endl;
         auto it = Sku.second.begin();   //Iterador
         while(it != Sku.second.end()){            //Iteramos mientras no lleguemos al final
-            if(it->second.size() != 12){          //Si el año no tiene 12 meses, lo eliminamos
+            if(it->second.size() < 4){          //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
                 it = Sku.second.erase(it); // Eliminar año y avanzar el iterador
             }
             else{
@@ -124,6 +129,7 @@ int main() {
     }
     
     /*Productos de la canasta básica*/
+    int r = 0;
     for(const auto& Sku : MapaProductos){
         std::cout << Sku.first << " | " << std::endl;
         for(const auto& Anho : Sku.second){
@@ -132,8 +138,9 @@ int main() {
                     std::cout << "\t\tMes: " << Mes.first << " -> " << Mes.second << std::endl;
             }
         }
+        r++;
     }
-    
+    std::cout << "r: " << r << std::endl;
     getchar();
 
     return 0;
