@@ -6,12 +6,55 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
-#include <omp.h>
+//#include <omp.h>
 #include <map>
+#include "libxl-4.3.0.14/include_cpp/libxl.h"
+
 /*TRABAJO FINAL PRESENTACION -> metodología que usamos de proyecto -> justificar los porqués -> hipótesis: existe una distorsión en el cálculo de la inflación - informe del proyecto*/
 /*revision en 4gb de ram*/
 
+using namespace std;
+using namespace libxl;
+
 int main() {
+    
+    /*Lectura archivo xlsx*/
+    Book* book = xlCreateXMLBook(); // xlCreateXMLBook() for xlsx
+    if(book){
+        const char* filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+        if(book->load(filename)){
+            Sheet* sheet = book->getSheet(0);
+            if(sheet){
+                int rowCount = sheet->lastRow();
+//                cout << rowCount;
+//                getchar();
+                int colCount = 2;
+                const char* cellValue;
+                for (int row = /*7*/300; row <= rowCount; row++) {
+                    for (int col = 1; col < colCount; col++) {
+                         cellValue = sheet->readStr(row, col); // Leer el valor de la celda como cadena
+                        
+//                        if (cellValue) {
+                            std::cout << "row "<< row << " -> " << cellValue << "\t"; // Imprimir el valor de la celda
+//                        } else {
+//                            std::cout << "Empty\t"; // Imprimir si la celda está vacía
+//                        }
+                    }
+                    std::cout << std::endl; // Salto de línea después de cada fila
+                }
+                book->release(); // Liberar recursos
+            }
+            else{
+                std::cout << "No se pudo cargar el archivo" << std::endl;
+            }
+        }
+        else{
+            std::cout << "No se pudo crear el libro" << std::endl;
+        }
+    }
+    
+    std::cout << "listo" << std::endl;
+    /*Lectura archivo csv*/
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
     std::string linea;
     char delimitador = ';';
