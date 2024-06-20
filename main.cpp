@@ -6,55 +6,68 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 //#include <omp.h>
 #include <map>
 #include "libxl-4.3.0.14/include_cpp/libxl.h"
 
-/*TRABAJO FINAL PRESENTACION -> metodología que usamos de proyecto -> justificar los porqués -> hipótesis: existe una distorsión en el cálculo de la inflación - informe del proyecto*/
-/*revision en 4gb de ram*/
-
 using namespace std;
 using namespace libxl;
+
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize) {
+    Book* book = xlCreateXMLBook();
+    if(book){
+        if(book->load(filename.c_str())){ // Carga el archivo Excel
+            Sheet* sheet = book->getSheet(0); // Obtiene la primera hoja
+            if(sheet){
+                int rowCount = sheet->lastRow(); // Obtiene el número de filas
+                int endRow = std::min(startRow + chunkSize, rowCount); // Determina la última fila a leer en este chunk
+                for(int row = startRow; row <= endRow; ++row){ // Itera sobre las filas
+                    double dateValue = sheet->readNum(row, 0);
+                    int year, month, day;
+                    book->dateUnpack(dateValue, &year, &month, &day);
+                    double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
+                    // Formatea e imprime la fecha
+                    std::cout << "actual: " << row << " final: " << endRow << " - ";
+                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
+                              << std::setfill('0') << std::setw(2) << month << "-"
+                              << std::setfill('0') << std::setw(2) << day << " "
+                              << num << std::endl;
+                }
+                startRow = endRow;
+            }
+            else{
+                std::cerr << "Error: No se pudo abrir la hoja 0." << std::endl;
+            }
+        }
+        else{
+            std::cerr << "Error: No se pudo cargar el archivo " << filename << "." << std::endl;
+        }
+        book->release();
+    }
+    else{
+        std::cerr << "Error: No se pudo crear el libro." << std::endl;
+    }
+}
 
 int main() {
     
     /*Lectura archivo xlsx*/
-    Book* book = xlCreateXMLBook(); // xlCreateXMLBook() for xlsx
-    if(book){
-        const char* filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
-        if(book->load(filename)){
-            Sheet* sheet = book->getSheet(0);
-            if(sheet){
-                int rowCount = sheet->lastRow();
-//                cout << rowCount;
-//                getchar();
-                int colCount = 2;
-                const char* cellValue;
-                for (int row = /*7*/7; row <= /*rowCount*/3000; row++) {
-                    for (int col = 1; col < colCount; col++) {
-//                         cellValue = sheet->readStr(row, col); // Leer el valor de la celda como cadena
-                         double cellValue = sheet->readNum(row,col);
-                        
-//                        if (cellValue) {
-                            std::cout << "row "<< row << " -> " << cellValue << "\t"; // Imprimir el valor de la celda
-//                        } else {
-//                            std::cout << "Empty\t"; // Imprimir si la celda está vacía
-//                        }
-                    }
-                    std::cout << std::endl; // Salto de línea después de cada fila
-                }
-                book->release(); // Liberar recursos
-            }
-            else{
-                std::cout << "No se pudo cargar el archivo" << std::endl;
-            }
-        }
-        else{
-            std::cout << "No se pudo crear el libro" << std::endl;
+    
+    std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+    int startRow = 7;
+//    int endRow = 0;
+    int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
+    
+    while(true){
+        readExcelChunk(filename, startRow, chunkSize);
+        if(startRow==3734){
+            break; // Termina si no hay más filas por leer
         }
     }
     
-    std::cout << "listo" << std::endl;
+    std::cout << "-- Excel listo --" << std::endl;
+    
     /*Lectura archivo csv*/
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
     std::string linea;
@@ -147,6 +160,8 @@ int main() {
 
     getchar();
     
+    /*Obtención canasta básica*/
+    
     /*Recorrer y eliminar años con menos de 4 meses*/
     for (auto& Sku : MapaProductos) {
 //        std::cout << Sku.first << " | " << std::endl;
@@ -187,6 +202,11 @@ int main() {
     std::cout << "r: " << r << std::endl;
     getchar();
 
+    /*Cálculo de la inflación*/
+    
+    
+    
+    
     return 0;
 }
 

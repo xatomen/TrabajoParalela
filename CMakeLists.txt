@@ -18,4 +18,3 @@ target_link_libraries(TrabajoParalela
 #if(OpenMP_CXX_FOUND)
 #    target_link_libraries(TrabajoParalela PUBLIC OpenMP::OpenMP_CXX libxl-4.3.0.14/lib64/libxl.so)
 #endif()
-#
