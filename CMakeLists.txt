@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(TrabajoParalela main.cpp
         Producto.cpp
         Producto.h
+        Moneda.cpp
+        Moneda.h
 )
 
 include_directories(libxl-4.3.0.14/include_cpp)

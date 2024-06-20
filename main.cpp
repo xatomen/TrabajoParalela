@@ -9,12 +9,16 @@
 #include <iomanip>
 //#include <omp.h>
 #include <map>
+#include "Moneda.h"
 #include "libxl-4.3.0.14/include_cpp/libxl.h"
 
 using namespace std;
 using namespace libxl;
 
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize) {
+//vector<Moneda> Monedas;
+
+/*--- Función que permite leer el  ---*/
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas) {
     Book* book = xlCreateXMLBook();
     if(book){
         if(book->load(filename.c_str())){ // Carga el archivo Excel
@@ -27,12 +31,17 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize) {
                     int year, month, day;
                     book->dateUnpack(dateValue, &year, &month, &day);
                     double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
+                    
+                    //Creamos un objeto y lo colocamos en el vector
+                    Moneda moneda;
+                    moneda.setPEN(day,month,year,num);
+                    Monedas.push_back(moneda);
                     // Formatea e imprime la fecha
-                    std::cout << "actual: " << row << " final: " << endRow << " - ";
-                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
-                              << std::setfill('0') << std::setw(2) << month << "-"
-                              << std::setfill('0') << std::setw(2) << day << " "
-                              << num << std::endl;
+//                    std::cout << "actual: " << row << " final: " << endRow << " - ";
+//                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
+//                              << std::setfill('0') << std::setw(2) << month << "-"
+//                              << std::setfill('0') << std::setw(2) << day << " "
+//                              << num << std::endl;
                 }
                 startRow = endRow;
             }
@@ -48,27 +57,35 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize) {
     else{
         std::cerr << "Error: No se pudo crear el libro." << std::endl;
     }
+    
+    //Imprimir vector de monedas
+    
+    
 }
 
 int main() {
     
-    /*Lectura archivo xlsx*/
+    /*--- Lectura archivo xlsx ---*/
     
+    vector<Moneda> Monedas;
     std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
     int startRow = 7;
 //    int endRow = 0;
     int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
     
     while(true){
-        readExcelChunk(filename, startRow, chunkSize);
+        readExcelChunk(filename, startRow, chunkSize, Monedas);
         if(startRow==3734){
             break; // Termina si no hay más filas por leer
         }
     }
-    
+    //Imprimir conversión de monedas
+    for(auto & Moneda : Monedas){
+        Moneda.printMoneda();
+    }
     std::cout << "-- Excel listo --" << std::endl;
     
-    /*Lectura archivo csv*/
+    /*--- Lectura archivo csv ---*/
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
     std::string linea;
     char delimitador = ';';
