@@ -46,7 +46,6 @@ int main() {
     std::string linea;
     char delimitador = ';';
     char comilla = '\"';
-    
     getline(archivo, linea);    //Leemos el "encabezado" del texto
     
 //    clock_t t;
@@ -66,31 +65,41 @@ int main() {
     }
     std::cout << "k: " << k << std::endl;
     getchar();
+    /*--- Fin ---*/
     
     /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
     int i = 0;
     while(getline(archivo,linea)){
         //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
+        
         /*---- Cargamos la línea en memoria como stream ----*/
         std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
+        /*--- Fin ---*/
         
         /*---- Leer Fecha ----*/
         getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
         //Solo utilizamos año y mes
         int anho = stoi(linea.substr(1,4)); //Extraer el año
         int mes = stoi(linea.substr(6,2));  //Extraer el mes
+        /*--- Fin ---*/
         
         /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
         for(int j=0; j<5; j++){
             getline(stream,linea,delimitador);
         }
+        /*--- Fin ---*/
         
         /*---- Leer SKU del producto ----*/
         std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
         getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
+        /*--- Fin ---*/
         
-        /*Nos saltamos los siguientes dos campos que no utilizaremos por el momento*/
+        /*--- Leemos quantity ---*/
         getline(stream,linea,delimitador);  //Cantidad
+        std::string str_quantity = linea;
+        str_quantity = str_quantity.substr(1,str_quantity.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
+        float quantity = stof(str_quantity);                                //Obtenemos el quantity en int
+        /*--- Fin ---*/
         
         /*
          * Para el campo nombre:
@@ -113,25 +122,27 @@ int main() {
             }
         }
         getline(stream,name,delimitador);  //Nombre
+        /*--- Fin ---*/
         
         /*---- Leer amount/costo del producto ----*/
         std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
         getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
-        //Por ahora no utilizamos el amount
         str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
         float amount = stof(str_amount);                                //Obtenemos el amount en float
+        
+        /*--- Ponemos los datos en el map anidado ---*/
         if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
             MapaProductos[sku][anho][mes] = {0, 0};
         }
         MapaProductos[sku][anho][mes][0]++;
-        MapaProductos[sku][anho][mes][1]+=amount;
+        MapaProductos[sku][anho][mes][1]+= (amount*quantity);
         i++;    //Incrementamos el contador
     }
-    std::cout << "--- Parseo listo ---" << std::endl;
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
 //    std::cout << "length = " << i << std::endl;
     archivo.close();
+    std::cout << "--- Parseo listo ---" << std::endl;
     getchar();
     /*--- Fin ---*/
     
@@ -150,6 +161,7 @@ int main() {
             }
         }
     }
+    /*--- Fin ---*/
 
     /*Recorrer y eliminar SKU sin años*/
     auto skuIt = MapaProductos.begin(); //Iterador
@@ -161,6 +173,7 @@ int main() {
             ++skuIt; // Solo incrementamos el iterador
         }
     }
+    /*--- Fin ---*/
 
     /*Productos de la canasta básica*/
     int r = 0;
@@ -174,13 +187,16 @@ int main() {
         }
         r++;
     }
-    
-    std::cout << "r: " << r << std::endl;
+    std::cout << "r: " << r << std::endl;   //Contador de productos distintos que pertenecen a la canasta básica
     getchar();
-
+    /*--- Fin ---*/
+    /*--- Fin ---*/
+    
     /*Cálculo de la inflación*/
     
     
+    
+    /*--- Fin ---*/
     
     
     return 0;
@@ -204,12 +220,6 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, v
                     Moneda moneda;
                     moneda.setPEN(day,month,year,num);
                     Monedas.push_back(moneda);
-                    // Formatea e imprime la fecha
-//                    std::cout << "actual: " << row << " final: " << endRow << " - ";
-//                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
-//                              << std::setfill('0') << std::setw(2) << month << "-"
-//                              << std::setfill('0') << std::setw(2) << day << " "
-//                              << num << std::endl;
                 }
                 startRow = endRow;
             }
