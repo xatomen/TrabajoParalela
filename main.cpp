@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Producto.h"
+//#include "Producto.h"
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -17,56 +17,11 @@ using namespace libxl;
 
 //vector<Moneda> Monedas;
 
-/*--- Función que permite leer el  ---*/
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas) {
-    Book* book = xlCreateXMLBook();
-    if(book){
-        if(book->load(filename.c_str())){ // Carga el archivo Excel
-            Sheet* sheet = book->getSheet(0); // Obtiene la primera hoja
-            if(sheet){
-                int rowCount = sheet->lastRow(); // Obtiene el número de filas
-                int endRow = std::min(startRow + chunkSize, rowCount); // Determina la última fila a leer en este chunk
-                for(int row = startRow; row <= endRow; ++row){ // Itera sobre las filas
-                    double dateValue = sheet->readNum(row, 0);
-                    int year, month, day;
-                    book->dateUnpack(dateValue, &year, &month, &day);
-                    double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
-                    
-                    //Creamos un objeto y lo colocamos en el vector
-                    Moneda moneda;
-                    moneda.setPEN(day,month,year,num);
-                    Monedas.push_back(moneda);
-                    // Formatea e imprime la fecha
-//                    std::cout << "actual: " << row << " final: " << endRow << " - ";
-//                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
-//                              << std::setfill('0') << std::setw(2) << month << "-"
-//                              << std::setfill('0') << std::setw(2) << day << " "
-//                              << num << std::endl;
-                }
-                startRow = endRow;
-            }
-            else{
-                std::cerr << "Error: No se pudo abrir la hoja 0." << std::endl;
-            }
-        }
-        else{
-            std::cerr << "Error: No se pudo cargar el archivo " << filename << "." << std::endl;
-        }
-        book->release();
-    }
-    else{
-        std::cerr << "Error: No se pudo crear el libro." << std::endl;
-    }
-    
-    //Imprimir vector de monedas
-    
-    
-}
+/*--- Función que permite leer el archivo xlsx por chunks (para evitar errores) ---*/
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas);
 
 int main() {
-    
     /*--- Lectura archivo xlsx ---*/
-    
     vector<Moneda> Monedas;
     std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
     int startRow = 7;
@@ -84,6 +39,7 @@ int main() {
         Moneda.printMoneda();
     }
     std::cout << "-- Excel listo --" << std::endl;
+    /*--- Fin ---*/
     
     /*--- Lectura archivo csv ---*/
     std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
@@ -96,9 +52,8 @@ int main() {
 //    clock_t t;
 //    t = clock();
     
-    /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses*/
-    std::map<std::string, std::map<int,std::map<int,int>>> MapaProductos;
-    
+    /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
+    std::map<std::string, std::map<int,std::map<int,std::vector<float>>>> MapaProductos;
     //mapa fecha-pesos para excel
     //usar mediana para los precios (criterio) y la variacion de precios (mediana)
     
@@ -165,17 +120,20 @@ int main() {
         //Por ahora no utilizamos el amount
         str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
         float amount = stof(str_amount);                                //Obtenemos el amount en float
-        
-        MapaProductos[sku][anho][mes]++;
+        if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
+            MapaProductos[sku][anho][mes] = {0, 0};
+        }
+        MapaProductos[sku][anho][mes][0]++;
+        MapaProductos[sku][anho][mes][1]+=amount;
         i++;    //Incrementamos el contador
     }
-    std::cout << "listo" << std::endl;
+    std::cout << "--- Parseo listo ---" << std::endl;
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
 //    std::cout << "length = " << i << std::endl;
     archivo.close();
-
     getchar();
+    /*--- Fin ---*/
     
     /*Obtención canasta básica*/
     
@@ -192,7 +150,7 @@ int main() {
             }
         }
     }
-    
+
     /*Recorrer y eliminar SKU sin años*/
     auto skuIt = MapaProductos.begin(); //Iterador
     while(skuIt != MapaProductos.end()){          //Iteramos mientras no lleguemos al final
@@ -203,7 +161,7 @@ int main() {
             ++skuIt; // Solo incrementamos el iterador
         }
     }
-    
+
     /*Productos de la canasta básica*/
     int r = 0;
     for(const auto& Sku : MapaProductos){
@@ -211,11 +169,12 @@ int main() {
         for(const auto& Anho : Sku.second){
             std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
             for(const auto& Mes : Anho.second){
-                    std::cout << "\t\tMes: " << Mes.first << " -> " << Mes.second << std::endl;
+                    std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << std::endl;
             }
         }
         r++;
     }
+    
     std::cout << "r: " << r << std::endl;
     getchar();
 
@@ -227,3 +186,44 @@ int main() {
     return 0;
 }
 
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas){
+    Book* book = xlCreateXMLBook();
+    if(book){
+        if(book->load(filename.c_str())){ // Carga el archivo Excel
+            Sheet* sheet = book->getSheet(0); // Obtiene la primera hoja
+            if(sheet){
+                int rowCount = sheet->lastRow(); // Obtiene el número de filas
+                int endRow = std::min(startRow + chunkSize, rowCount); // Determina la última fila a leer en este chunk
+                for(int row = startRow; row <= endRow; ++row){ // Itera sobre las filas
+                    double dateValue = sheet->readNum(row, 0);
+                    int year, month, day;
+                    book->dateUnpack(dateValue, &year, &month, &day);
+                    double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
+                    
+                    //Creamos un objeto y lo colocamos en el vector
+                    Moneda moneda;
+                    moneda.setPEN(day,month,year,num);
+                    Monedas.push_back(moneda);
+                    // Formatea e imprime la fecha
+//                    std::cout << "actual: " << row << " final: " << endRow << " - ";
+//                    std::cout << std::setfill('0') << std::setw(4) << year << "-"
+//                              << std::setfill('0') << std::setw(2) << month << "-"
+//                              << std::setfill('0') << std::setw(2) << day << " "
+//                              << num << std::endl;
+                }
+                startRow = endRow;
+            }
+            else{
+                std::cerr << "Error: No se pudo abrir la hoja 0." << std::endl;
+            }
+        }
+        else{
+            std::cerr << "Error: No se pudo cargar el archivo " << filename << "." << std::endl;
+        }
+        book->release();
+    }
+    else{
+        std::cerr << "Error: No se pudo crear el libro." << std::endl;
+    }
+    
+}
