@@ -15,31 +15,41 @@
 using namespace std;
 using namespace libxl;
 
-//vector<Moneda> Monedas;
+std::map<std::pair<int,int>,double> PEN_CLP;  //pair(anho,mes),pesos
+std::map<std::pair<int,int>,int> FECHAS; //pair(anho,mes),dias
+std::map<std::pair<int,int>,float> SolesToPesos;
 
 /*--- Función que permite leer el archivo xlsx por chunks (para evitar errores) ---*/
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas);
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize);
 
 int main() {
     /*--- Lectura archivo xlsx ---*/
     std::cout << "-- Lectura excel --" << std::endl;
-    vector<Moneda> Monedas;
     std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
     int startRow = 7;
 //    int endRow = 0;
     int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
     
     while(true){
-        readExcelChunk(filename, startRow, chunkSize, Monedas);
+        readExcelChunk(filename, startRow, chunkSize);
         if(startRow==3734){
             break; // Termina si no hay más filas por leer
         }
     }
-    //Imprimir conversión de monedas
-//    for(auto & Moneda : Monedas){
-//        Moneda.printMoneda();
-//    }
+    /*--- Guardamos la transformación de moneda en un map*/
+    auto pesos = PEN_CLP.begin();
+    auto dias = FECHAS.begin();
+    for(; pesos!=PEN_CLP.end() && dias!=FECHAS.end(); pesos++, dias++){
+//        std::cout << pesos->first.first << "/" << pesos->first.second << "\t- dias: " << dias->second << " suma: " << pesos->second << std::endl;
+        std::pair<int,int> fecha(pesos->first.first,pesos->first.second);   //Asignamos el promedio de pesos a cada mes
+        SolesToPesos[fecha] = pesos->second/dias->second;
+    }
+    /*--- Imprimimos la transformación de moneda por mes ---*/
+    for(auto& map: SolesToPesos){
+        std::cout << map.first.first << "/" << map.first.second << "\t- " << map.second << std::endl;
+    }
     std::cout << "-- Excel listo --" << std::endl;
+    getchar();
     /*--- Fin ---*/
     
     /*--- Lectura archivo csv ---*/
@@ -53,12 +63,12 @@ int main() {
 //    t = clock();
     
     /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
-    std::map<std::string, std::map<int,std::map<int,std::vector<float>>>> MapaProductos;
+    std::map<std::string, std::map<int, std::map<int, std::vector<float> > > > MapaProductos;
     //mapa fecha-pesos para excel
     //usar mediana para los precios (criterio) y la variacion de precios (mediana)
     
     /*Utilizaremos este while para obtener la cantidad de líneas, para luego paralelizar la lectura*/
-    std::cout << "-- Cargado líneas --" << std::endl;
+    std::cout << "-- Cargado de líneas --" << std::endl;
     int k=0;
     std::ifstream arch_csv("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
     std::string line;
@@ -66,8 +76,8 @@ int main() {
         k++;
     }
     std::cout << "k: " << k << std::endl;
-    std::cout << "-- Cargado lineas listo --" << std::endl;
-    getchar();
+    std::cout << "-- Cargado de lineas listo --" << std::endl;
+//    getchar();
     /*--- Fin ---*/
     
     /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
@@ -143,24 +153,25 @@ int main() {
             MapaProductos[sku][anho][mes][1]+= amount;
         }
         i++;    //Incrementamos el contador
-        if(i==10000000)break;
+//        if(i==10000000)break;
     }
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
 //    std::cout << "length = " << i << std::endl;
     archivo.close();
     std::cout << "--- Parseo listo ---" << std::endl;
-    getchar();
+//    getchar();
     /*--- Fin ---*/
     
     /*Obtención canasta básica*/
     
-    /*Recorrer y eliminar años con menos de 4 meses*/
+    /*Recorrer y eliminar años con menos de x meses*/
+    int x = 6;
     for (auto& Sku : MapaProductos) {
 //        std::cout << Sku.first << " | " << std::endl;
         auto it = Sku.second.begin();   //Iterador
         while(it != Sku.second.end()){            //Iteramos mientras no lleguemos al final
-            if(it->second.size() < 4){          //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
+            if(it->second.size() < x){          //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
                 it = Sku.second.erase(it); // Eliminar año y avanzar el iterador
             }
             else{
@@ -199,23 +210,21 @@ int main() {
         }
         r++;
     }
-    std::cout << "r: " << r << std::endl;   //Contador de productos distintos que pertenecen a la canasta básica
-    getchar();
+    std::cout << "Cantidad de SKUs diferentes: " << r << std::endl;   //Contador de productos distintos que pertenecen a la canasta básica
+//    getchar();
     /*--- Fin ---*/
     
-    /*Suma total mensual para inflación*/
-    
-//    std::map <std::pair<int,int>, float> total_productos_por_fecha;
-
+    /*--- Obtenemos el total de productos por fecha ---*/
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
                 // Crear clave para el mapa de sumas de productos
                 std::pair<int, int> fecha_clave1(Anho.first, Mes.first);
                 // Si la clave ya existe, agregar la cantidad al valor existente
-                if (total_productos_por_fecha.count(fecha_clave1) > 0) {
+                if(total_productos_por_fecha.count(fecha_clave1) > 0){
                     total_productos_por_fecha[fecha_clave1] += Mes.second[0]; // Cantidad de productos
-                } else {
+                }
+                else{
                     // Si la clave no existe, crear una nueva entrada con la cantidad
                     total_productos_por_fecha[fecha_clave1] = Mes.second[0];
                 }
@@ -223,16 +232,18 @@ int main() {
         }
     }
     
+    /*--- Obtener la suma total de precios por fecha ---*/
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
                 // Crear clave para el mapa de sumas de productos
                 std::pair<int, int> fecha_clave2(Anho.first, Mes.first);
                 // Si la clave ya existe, agregar la cantidad al valor existente
-                if (total_suma_por_fecha.count(fecha_clave2) > 0) {
-                    total_suma_por_fecha[fecha_clave2] += Mes.second[1]; // Cantidad de productos
-                } else {
-                    // Si la clave no existe, crear una nueva entrada con la cantidad
+                if(total_suma_por_fecha.count(fecha_clave2) > 0){
+                    total_suma_por_fecha[fecha_clave2] += Mes.second[1]; // Suma de los precios
+                }
+                else{
+                    // Si la clave no existe, crear una nueva entrada con la suma de los precios
                     total_suma_por_fecha[fecha_clave2] = Mes.second[1];
                 }
             }
@@ -240,36 +251,20 @@ int main() {
     }
     getchar();
     
-    /*revisar para abajo*/
-
-    // Recorrer el mapa de sumas de suma precios
-    for (const auto& par : total_suma_por_fecha) {
+    /*--- Recorrer el mapa de sumas de suma precios ---*/
+    auto it1 = total_productos_por_fecha.begin();
+    auto it2 = total_suma_por_fecha.begin();
+    for (; it1!=total_productos_por_fecha.end() && it2!=total_suma_por_fecha.end() ; it1++, it2++) {
         // Imprimir la fecha y la suma de productos
-        std::cout << "Fecha: " << par.first.first << "/" << par.first.second << " - Suma precios promedio: " << par.second << std::endl;
+        std::cout << "Fecha: " << it1->first.first << "/" << it1->first.second << "\t - total cantidad: " << it1->second << " - total suma precio: " << it2->second << " IPC: " << it2->second/it1->second << std::endl;
     }
     getchar();
-    // Recorrer el mapa de sumas de productos
-    for (const auto& par : total_productos_por_fecha) {
-        // Imprimir la fecha y la suma de productos
-        std::cout << "Fecha: " << par.first.first << "/" << par.first.second << " - Suma cantidad productos: " << par.second << std::endl;
-    }
-    getchar();
-//    for(int o=0; o<h; o++){
-//        std::cout << IPC[o] << std::endl;
-//    }
     /*--- Fin ---*/
-    
-    /*Cálculo de la inflación*/
-    
-    
-    
-    /*--- Fin ---*/
-    
     
     return 0;
 }
 
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, vector<Moneda> &Monedas){
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize){
     Book* book = xlCreateXMLBook();
     if(book){
         if(book->load(filename.c_str())){ // Carga el archivo Excel
@@ -283,10 +278,17 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, v
                     book->dateUnpack(dateValue, &year, &month, &day);
                     double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
                     
-                    //Creamos un objeto y lo colocamos en el vector
-                    Moneda moneda;
-                    moneda.setPEN(day,month,year,num);
-                    Monedas.push_back(moneda);
+                    //Ingresamos el dato en el mapa PEN_CLP
+                    std::pair<int,int> fecha(year,month);
+                    if (PEN_CLP.count(fecha) > 0) {
+                        PEN_CLP[fecha] += num; // Cantidad de productos
+                        FECHAS[fecha]+=1;
+                    }
+                    else {
+                        // Si la clave no existe, crear una nueva entrada con la cantidad
+                        PEN_CLP[fecha] = num;
+                        FECHAS[fecha]+=1;
+                    }
                 }
                 startRow = endRow;
             }
