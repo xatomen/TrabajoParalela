@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-//#include <omp.h>
+#include <omp.h>
 #include <map>
 #include "Moneda.h"
 #include "libxl-4.3.0.14/include_cpp/libxl.h"
@@ -22,6 +22,7 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, v
 
 int main() {
     /*--- Lectura archivo xlsx ---*/
+    std::cout << "-- Lectura excel --" << std::endl;
     vector<Moneda> Monedas;
     std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
     int startRow = 7;
@@ -35,9 +36,9 @@ int main() {
         }
     }
     //Imprimir conversión de monedas
-    for(auto & Moneda : Monedas){
-        Moneda.printMoneda();
-    }
+//    for(auto & Moneda : Monedas){
+//        Moneda.printMoneda();
+//    }
     std::cout << "-- Excel listo --" << std::endl;
     /*--- Fin ---*/
     
@@ -57,6 +58,7 @@ int main() {
     //usar mediana para los precios (criterio) y la variacion de precios (mediana)
     
     /*Utilizaremos este while para obtener la cantidad de líneas, para luego paralelizar la lectura*/
+    std::cout << "-- Cargado líneas --" << std::endl;
     int k=0;
     std::ifstream arch_csv("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
     std::string line;
@@ -64,10 +66,12 @@ int main() {
         k++;
     }
     std::cout << "k: " << k << std::endl;
+    std::cout << "-- Cargado lineas listo --" << std::endl;
     getchar();
     /*--- Fin ---*/
     
     /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
+    std::cout << "-- Parseo csv --" << std::endl;
     int i = 0;
     while(getline(archivo,linea)){
         //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
@@ -98,7 +102,7 @@ int main() {
         getline(stream,linea,delimitador);  //Cantidad
         std::string str_quantity = linea;
         str_quantity = str_quantity.substr(1,str_quantity.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
-        float quantity = stof(str_quantity);                                //Obtenemos el quantity en int
+        int quantity = stoi(str_quantity);                                //Obtenemos el quantity en int
         /*--- Fin ---*/
         
         /*
@@ -134,9 +138,12 @@ int main() {
         if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
             MapaProductos[sku][anho][mes] = {0, 0};
         }
-        MapaProductos[sku][anho][mes][0]++;
-        MapaProductos[sku][anho][mes][1]+= (amount*quantity);
+        for(int qty=0; qty<quantity; qty++){    //Sumamos la cantidad de veces que se adquirió el producto/sku
+            MapaProductos[sku][anho][mes][0]++;
+            MapaProductos[sku][anho][mes][1]+= amount;
+        }
         i++;    //Incrementamos el contador
+        if(i==10000000)break;
     }
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
@@ -177,12 +184,17 @@ int main() {
 
     /*Productos de la canasta básica*/
     int r = 0;
+    std::map <std::pair<int,int>, int> total_productos_por_fecha;
+    std::map <std::pair<int,int>, double> total_suma_por_fecha;
+    std::map <std::pair<int,int>, double> IPC_fecha;
+    
     for(const auto& Sku : MapaProductos){
         std::cout << Sku.first << " | " << std::endl;
         for(const auto& Anho : Sku.second){
             std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
             for(const auto& Mes : Anho.second){
-                    std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << std::endl;
+                float prom = Mes.second[1]/Mes.second[0];
+                std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << " - precio promedio: " << prom << std::endl;
             }
         }
         r++;
@@ -190,6 +202,61 @@ int main() {
     std::cout << "r: " << r << std::endl;   //Contador de productos distintos que pertenecen a la canasta básica
     getchar();
     /*--- Fin ---*/
+    
+    /*Suma total mensual para inflación*/
+    
+//    std::map <std::pair<int,int>, float> total_productos_por_fecha;
+
+    for(const auto& Sku : MapaProductos){
+        for(const auto& Anho : Sku.second){
+            for(const auto& Mes : Anho.second){
+                // Crear clave para el mapa de sumas de productos
+                std::pair<int, int> fecha_clave1(Anho.first, Mes.first);
+                // Si la clave ya existe, agregar la cantidad al valor existente
+                if (total_productos_por_fecha.count(fecha_clave1) > 0) {
+                    total_productos_por_fecha[fecha_clave1] += Mes.second[0]; // Cantidad de productos
+                } else {
+                    // Si la clave no existe, crear una nueva entrada con la cantidad
+                    total_productos_por_fecha[fecha_clave1] = Mes.second[0];
+                }
+            }
+        }
+    }
+    
+    for(const auto& Sku : MapaProductos){
+        for(const auto& Anho : Sku.second){
+            for(const auto& Mes : Anho.second){
+                // Crear clave para el mapa de sumas de productos
+                std::pair<int, int> fecha_clave2(Anho.first, Mes.first);
+                // Si la clave ya existe, agregar la cantidad al valor existente
+                if (total_suma_por_fecha.count(fecha_clave2) > 0) {
+                    total_suma_por_fecha[fecha_clave2] += Mes.second[1]; // Cantidad de productos
+                } else {
+                    // Si la clave no existe, crear una nueva entrada con la cantidad
+                    total_suma_por_fecha[fecha_clave2] = Mes.second[1];
+                }
+            }
+        }
+    }
+    getchar();
+    
+    /*revisar para abajo*/
+
+    // Recorrer el mapa de sumas de suma precios
+    for (const auto& par : total_suma_por_fecha) {
+        // Imprimir la fecha y la suma de productos
+        std::cout << "Fecha: " << par.first.first << "/" << par.first.second << " - Suma precios promedio: " << par.second << std::endl;
+    }
+    getchar();
+    // Recorrer el mapa de sumas de productos
+    for (const auto& par : total_productos_por_fecha) {
+        // Imprimir la fecha y la suma de productos
+        std::cout << "Fecha: " << par.first.first << "/" << par.first.second << " - Suma cantidad productos: " << par.second << std::endl;
+    }
+    getchar();
+//    for(int o=0; o<h; o++){
+//        std::cout << IPC[o] << std::endl;
+//    }
     /*--- Fin ---*/
     
     /*Cálculo de la inflación*/
