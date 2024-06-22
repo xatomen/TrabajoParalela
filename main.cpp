@@ -49,7 +49,7 @@ int main() {
         std::cout << map.first.first << "/" << map.first.second << "\t- " << map.second << std::endl;
     }
     std::cout << "-- Excel listo --" << std::endl;
-    getchar();
+//    getchar();
     /*--- Fin ---*/
     
     /*--- Lectura archivo csv ---*/
@@ -200,12 +200,12 @@ int main() {
     std::map <std::pair<int,int>, double> IPC_fecha;
     
     for(const auto& Sku : MapaProductos){
-        std::cout << Sku.first << " | " << std::endl;
+//        std::cout << Sku.first << " | " << std::endl;
         for(const auto& Anho : Sku.second){
-            std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
+//            std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
             for(const auto& Mes : Anho.second){
                 float prom = Mes.second[1]/Mes.second[0];
-                std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << " - precio promedio: " << prom << std::endl;
+//                std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << " - precio promedio: " << prom << std::endl;
             }
         }
         r++;
@@ -254,9 +254,20 @@ int main() {
     /*--- Recorrer el mapa de sumas de suma precios ---*/
     auto it1 = total_productos_por_fecha.begin();
     auto it2 = total_suma_por_fecha.begin();
+    int base = 0;
+    double mes_base;
+    double acum = 0;
     for (; it1!=total_productos_por_fecha.end() && it2!=total_suma_por_fecha.end() ; it1++, it2++) {
+        //Definimos mes base
+        if(base==0){
+            mes_base = it2->second/it1->second;
+            base++;
+        }
+        double mediacanastames = it2->second/it1->second;
+        double variacion = mediacanastames/mes_base - 1;
+        acum += variacion; //Si la variación es mayor que cero, sumamos; si es menor, restamos
         // Imprimir la fecha y la suma de productos
-        std::cout << "Fecha: " << it1->first.first << "/" << it1->first.second << "\t - total cantidad: " << it1->second << " - total suma precio: " << it2->second << " IPC: " << it2->second/it1->second << std::endl;
+        std::cout << "Fecha: " << it1->first.first << "/" << it1->first.second << "\t - total cantidad: " << it1->second << " - total suma precio: " << it2->second << " MediaCanasta: " << mediacanastames << " IPCmensual: " << mediacanastames/mes_base << " Var: " << variacion << " Acum: " << acum << std::endl;
     }
     getchar();
     /*--- Fin ---*/
