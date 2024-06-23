@@ -155,7 +155,7 @@ int main() {
             MapaProductos[sku][anho][mes][1]+= amount;
         }
         i++;    //Incrementamos el contador
-        if(i==10000000)break;
+//        if(i==30000000)break;
     }
 //    t = clock() - t;
 //    std::cout << "clock t = " << t << std::endl;
@@ -182,30 +182,29 @@ int main() {
     
     /*--- Guardamos en un mapa, la cantidad de meses de cada año ---*/
     std::map<int, int> mesesPorAnho;    // mesesPorAnho {año,mes}
-    for (const auto& entry : fechaSku1) {
-        mesesPorAnho[entry.first.first]++;
+    for (const auto& entry : fechaSku1){    //Recorremos el mapa fechaSku1
+        mesesPorAnho[entry.first.first]++;                  //Cada vez que pasemos por un mes, aumentamos el contador
     }
     /*--- Fin ---*/
 
-    getchar();
+//    getchar();
     
     /*Recorrer y eliminar años con menos de 12 meses*/
     int mesesAnho;
     for (auto& Sku : MapaProductos) {
-//        std::cout << Sku.first << " | " << std::endl;
-        auto it = Sku.second.begin();   //Declaramos e inicializamos un iterador sobre el año
+        auto it = Sku.second.begin();                   //Declaramos e inicializamos un iterador sobre el año
         /*--- En este bloque buscamos encontrar la cantidad de meses ---*/
-        int anho = it->first;   //it->first corresponde al año actual
-        for(auto& entry: mesesPorAnho){  //Recorremos el map, de los meses por año, completo
-            if(entry.first == anho){                        //Buscamos el año actual que es igual al año del mapa
-                mesesAnho = entry.second;                   //Recuperamos la cantidad de meses del año buscado en el mapa
+        int anho = it->first;                                       //it->first corresponde al año actual
+        for(auto& entry: mesesPorAnho){          // Recorremos el map, de los meses por año, completo
+            if(entry.first == anho){                                //Buscamos el año actual que es igual al año del mapa
+                mesesAnho = entry.second;                           //Recuperamos la cantidad de meses del año buscado en el mapa
             }
         }
         /*--- Fin ---*/
         /*--- En este while buscamos los SKUs que no se encuentren en todos los meses del año y los eliminamos ---*/
-        while(it != Sku.second.end()){              //Iteramos mientras no lleguemos al año final
-            if(it->second.size() < mesesAnho){      //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
-                it = Sku.second.erase(it);  // Eliminar solo el año y avanzar el iterador
+        while(it != Sku.second.end()){                              //Iteramos mientras no lleguemos al año final
+            if(it->second.size() < mesesAnho){                      //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
+                it = Sku.second.erase(it);                  //Eliminar solo el año y avanzar el iterador
             }
             else{
                 ++it; // Solo incrementamos el iterador
@@ -229,133 +228,71 @@ int main() {
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
     /*--- Con esto obtenemos la canasta básica por año ---*/
-    std::map<std::pair<int,int>,std::map<std::string,int>> fechaSku2; //Mapa que contiene fecha año, mes y cada fecha tiene el sku
+    std::map<std::pair<int,int>,std::map<std::string,double>> fechaSku2; //Mapa que contiene fecha año, mes y cada fecha tiene el sku, el sku posee el valor promedio de ese sku en esa fecha
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
-                std::pair<int,int> fecha(Anho.first,Mes.first);
-                fechaSku2[fecha][Sku.first]++;
+                std::pair<int,int> fecha(Anho.first,Mes.first);         //Generamos un par valor que representa la fecha {año,mes}
+                fechaSku2[fecha][Sku.first] = Mes.second[1]/Mes.second[0];    //En cada SKU de cada año colocamos el valor promedio del SKU en esa fecha (año-mes)
             }
         }
     }
     /*--- Fin ---*/
-    
-    /*--- Verificación temporal ---*/
-    int contador;
-    contador=0;
-    for(const auto& Fecha: fechaSku1){
-        std::cout << Fecha.first.first << "/" << Fecha.first.second << std::endl;
-        for(const auto& Sku : Fecha.second){
-//            std::cout << "\t" << Sku.first << "\t- cantidad:" << Sku.second << std::endl;
-        }
-        contador++;
-    }
-    std::cout << "Contador 1: " << contador << std::endl;
-//    getchar();
-    
-    contador=0;
-    int contador2;
-    std::vector<std::string> Vector4;
-    std::vector<std::string> Vector5;
-    for(const auto& Fecha: fechaSku2){
-        contador2=0;
-        std::cout << Fecha.first.first << "/" << Fecha.first.second << std::endl;
-        for(const auto& Sku : Fecha.second){
-//            std::cout << "\t" << Sku.first << "\t- cantidad:" << Sku.second << std::endl;
-            if(Fecha.first.second==4)Vector4.push_back(Sku.first);
-            if(Fecha.first.second==5)Vector5.push_back(Sku.first);
-            contador2++;
-        }
-        std::cout << "contador2: " << contador2 << std::endl;
-//        contador2=0;
-        contador++;
-    }
-    std::cout << "Contador 2: " << contador << std::endl;
-    if(Vector4==Vector5){std::cout<<"SON IGUALES"<<std::endl;}
-    getchar();
+    /*--- Imprimir ---*/
+//    for(auto& fecha: fechaSku2){
+//        std::cout << fecha.first.first << "/" << fecha.first.second << std::endl;
+//        for(auto& sku : fecha.second){
+//            std::cout << "\tSKU: " << sku.first << "\t- Precio promedio: " << sku.second << std::endl;
+//            getchar();
+//        }
+//    }
     /*--- Fin ---*/
     
-    //Guardar canasta mensual/anual en archivo
-    
-    /*Productos de la canasta básica*/
-    int r = 0;
-    std::map <std::pair<int,int>, int> total_productos_por_fecha;
-    std::map <std::pair<int,int>, double> total_suma_por_fecha;
-    std::map <std::pair<int,int>, double> IPC_fecha;
-    
-    for(const auto& Sku : MapaProductos){
-//        std::cout << Sku.first << " | " << std::endl;
-        for(const auto& Anho : Sku.second){
-//            std::cout << "\tAnho: " << Anho.first << " | -> meses: " << Anho.second.size() << std::endl;
-            for(const auto& Mes : Anho.second){
-                float prom = Mes.second[1]/Mes.second[0];
-//                std::cout << "\t\tMes: " << Mes.first << " -> contador: " << Mes.second[0] << " - suma: " << Mes.second[1] << " - precio promedio: " << prom << std::endl;
-            }
-        }
-        r++;
-    }
-    std::cout << "Cantidad de SKUs diferentes: " << r << std::endl;   //Contador de productos distintos que pertenecen a la canasta básica
-//    getchar();
-    /*--- Fin ---*/
-    //cambiar estrategia
-    
-    //Revisar y reformular si es necesario!!!!!!11
+    /*--- Mapa del valor de la canasta mensual ---*/
+    std::map <std::pair<int,int>, double> ValorCanastaMensual;
     
     /*--- Obtenemos el total de productos por fecha ---*/
-    for(const auto& Sku : MapaProductos){
-        for(const auto& Anho : Sku.second){
-            for(const auto& Mes : Anho.second){
-                // Crear clave para el mapa de sumas de productos
-                std::pair<int, int> fecha_clave1(Anho.first, Mes.first);
-                // Si la clave ya existe, agregar la cantidad al valor existente
-                if(total_productos_por_fecha.count(fecha_clave1) > 0){
-                    total_productos_por_fecha[fecha_clave1] += Mes.second[0]; // Cantidad de productos
-                }
-                else{
-                    // Si la clave no existe, crear una nueva entrada con la cantidad
-                    total_productos_por_fecha[fecha_clave1] = Mes.second[0];
-                }
-            }
+    for(auto& fecha : fechaSku2){
+        for(auto& sku : fecha.second){
+            ValorCanastaMensual[fecha.first] += sku.second;
         }
     }
+    /*--- Fin ---*/
+    /*--- Imprimimos el precio promedio de la canasta mensual*/
+    for(auto& map : ValorCanastaMensual){
+        std::cout << map.first.first << "/" << map.first.second << "\t- Valor canasta: " << map.second << std::endl;
+    }
+    /*--- Fin ---*/
     
-    /*--- Obtener la suma total de precios por fecha ---*/
-    for(const auto& Sku : MapaProductos){
-        for(const auto& Anho : Sku.second){
-            for(const auto& Mes : Anho.second){
-                // Crear clave para el mapa de sumas de productos
-                std::pair<int, int> fecha_clave2(Anho.first, Mes.first);
-                // Si la clave ya existe, agregar la cantidad al valor existente
-                if(total_suma_por_fecha.count(fecha_clave2) > 0){
-                    total_suma_por_fecha[fecha_clave2] += Mes.second[1]; // Suma de los precios
-                }
-                else{
-                    // Si la clave no existe, crear una nueva entrada con la suma de los precios
-                    total_suma_por_fecha[fecha_clave2] = Mes.second[1];
-                }
-            }
+    /*--- Calculamos la variación intermensual de la canasta básica ---*/
+    std::cout << "--- Variación intermensual ---" << std::endl;
+    //Inicializamos algunas variables que utilizaremos
+    double mesBase;
+    bool flag = false;
+    double varAcumulado = 0;
+    int anhoActual;
+    //En el siguiente for, lo que hacemos es recorrer todos los meses y años del valor de canasta mensual
+    for(auto& vcm : ValorCanastaMensual){
+        /*Si es el primer mes, lo usamos como mes base inicial*/
+        if(flag == false){                  //Si el flag es falso, entonces es el primer mes del primer año
+            anhoActual = vcm.first.first;   //El año actual será el mes base
+            mesBase = vcm.second;           //El mes base será el primer mes
+            flag = true;                    //Cambiamos el flag para que no volvamos a entrar a la condición
         }
-    }
-    getchar();
-    
-    /*--- Recorrer el mapa de sumas de suma precios ---*/
-    auto it1 = total_productos_por_fecha.begin();
-    auto it2 = total_suma_por_fecha.begin();
-    int base = 0;
-    double mes_base;
-    double acum = 0;
-    for (; it1!=total_productos_por_fecha.end() && it2!=total_suma_por_fecha.end() ; it1++, it2++) {
-        //Definimos mes base
-        if(base==0){
-            mes_base = it2->second/it1->second;
-            base++;
+        /*Verificamos si cambiamos de año*/
+        if(anhoActual != vcm.first.first){  //Si el año actual (anterior) es distinto al nuevo, tuvimos un cambio de año, por lo que reseteamos las variables
+            mesBase = vcm.second;           //Mes base será igual nuevo mes base
+            anhoActual = vcm.first.first;   //Año actual será igual al nuevo año
+            varAcumulado = 0;               //Reseteamos la variación acumulada
+            std::cout << "--- Nuevo año ---" << std::endl;
         }
-        double mediacanastames = it2->second/it1->second;
-        double variacion = mediacanastames/mes_base - 1;
-        acum += variacion; //Si la variación es mayor que cero, sumamos; si es menor, restamos
-        // Imprimir la fecha y la suma de productos
-        std::cout << "Fecha: " << it1->first.first << "/" << it1->first.second << "\t - total cantidad: " << it1->second << " - total suma precio: " << it2->second << " MediaCanasta: " << mediacanastames << " IPCmensual: " << mediacanastames/mes_base << " Var: " << variacion << " Acum: " << acum << std::endl;
+        double mesActual = vcm.second;                                  //Asignamos el mes actual
+        double variacionIntermensual = ((mesActual/mesBase) - 1)*100;   //Calculamos la variación intermensual entre ambos meses
+        varAcumulado += variacionIntermensual;                          //Sumamos la variación
+        std::cout << vcm.first.first << "/" << vcm.first.second << "\tVariación intermensual: " << variacionIntermensual << "\tVariación acumulada: " << varAcumulado << "%" << std::endl;
+        mesBase = mesActual;                                            //Actualizamos el mes base con el mes que acabamos de usar
     }
+
     getchar();
     /*--- Fin ---*/
     //IPC máximo entre 10-15%
