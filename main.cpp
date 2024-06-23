@@ -165,31 +165,27 @@ int main() {
 //    getchar();
     /*--- Fin ---*/
     
-    /*Obtención canasta básica*/
+    /*--- Obtención canasta básica ---*/
     
-    //Guardar canasta mensual/anual en archivo
-    
-    /*--- A cada fecha, asignar los sku --- PARA VERIFICAR*/
+    /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos antes de obtener la canasta básica para verificar ---*/
     std::map<std::pair<int,int>,std::map<std::string,int>> fechaSku1; //Mapa que contiene fecha (año, mes) y cada fecha tiene el sku
     for(const auto& Sku : MapaProductos){
-        
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
-                //Precio promedio de cada sku por año y mes
-//                float precioPromedio = Mes.second[1]/Mes.second[0];
-                // Crear clave para el mapa de sumas de productos
-//                std::pair<std::string,int> sku(Sku.first, precioPromedio);
                 std::pair<int,int> fecha(Anho.first,Mes.first);
                 // Si la clave ya existe, agregar la cantidad al valor existente
                 fechaSku1[fecha][Sku.first]++;
             }
         }
     }
+    /*--- Fin ---*/
     
-    std::map<int, int> mesesPorAnho;
+    /*--- Guardamos en un mapa, la cantidad de meses de cada año ---*/
+    std::map<int, int> mesesPorAnho;    // mesesPorAnho {año,mes}
     for (const auto& entry : fechaSku1) {
         mesesPorAnho[entry.first.first]++;
     }
+    /*--- Fin ---*/
 
     getchar();
     
@@ -200,16 +196,16 @@ int main() {
         auto it = Sku.second.begin();   //Declaramos e inicializamos un iterador sobre el año
         /*--- En este bloque buscamos encontrar la cantidad de meses ---*/
         int anho = it->first;   //it->first corresponde al año actual
-        for(auto& entry: mesesPorAnho){ //Recorremos el map, de los meses por año, completo
+        for(auto& entry: mesesPorAnho){  //Recorremos el map, de los meses por año, completo
             if(entry.first == anho){                        //Buscamos el año actual que es igual al año del mapa
                 mesesAnho = entry.second;                   //Recuperamos la cantidad de meses del año buscado en el mapa
             }
         }
         /*--- Fin ---*/
         /*--- En este while buscamos los SKUs que no se encuentren en todos los meses del año y los eliminamos ---*/
-        while(it != Sku.second.end()){               //Iteramos mientras no lleguemos al año final
-            if(it->second.size() < mesesAnho){       //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
-                it = Sku.second.erase(it);   // Eliminar solo el año y avanzar el iterador
+        while(it != Sku.second.end()){              //Iteramos mientras no lleguemos al año final
+            if(it->second.size() < mesesAnho){      //Si el año no tiene a lo menos 4 meses, lo eliminamos ///REEEVISARRRR!!! que sean 12 meses
+                it = Sku.second.erase(it);  // Eliminar solo el año y avanzar el iterador
             }
             else{
                 ++it; // Solo incrementamos el iterador
@@ -220,36 +216,32 @@ int main() {
     /*--- Fin ---*/
 
     /*--- Recorrer y eliminar SKU sin años (ya que anteriormente solo eliminamos los años) ---*/
-    auto skuIt = MapaProductos.begin(); //Inicializamos un nuevo iterador
-    while(skuIt != MapaProductos.end()){          //Iteramos mientras no lleguemos al final
-        if(skuIt->second.empty()){                 //Si el SKU no tiene un elemento "par", que es el/los años, entonces lo eliminamos
+    auto skuIt = MapaProductos.begin();     //Inicializamos un nuevo iterador
+    while(skuIt != MapaProductos.end()){                //Iteramos mientras no lleguemos al final
+        if(skuIt->second.empty()){                      //Si el SKU no tiene un elemento "par", que es el/los años, entonces lo eliminamos
             skuIt = MapaProductos.erase(skuIt); // Eliminar SKU y avanzar el iterador
         }
         else{
-            ++skuIt; // Solo incrementamos el iterador
+            ++skuIt;                                    // Solo incrementamos el iterador
         }
     }
     /*--- Fin ---*/
     
-    /*--- A cada fecha, asignar los sku --- PARA VERIFICAR 2*/
+    /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
+    /*--- Con esto obtenemos la canasta básica por año ---*/
     std::map<std::pair<int,int>,std::map<std::string,int>> fechaSku2; //Mapa que contiene fecha año, mes y cada fecha tiene el sku
     for(const auto& Sku : MapaProductos){
-        
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
-                //Precio promedio de cada sku por año y mes
-//                float precioPromedio = Mes.second[1]/Mes.second[0];
-                // Crear clave para el mapa de sumas de productos
-//                std::pair<std::string,int> sku(Sku.first, precioPromedio);
                 std::pair<int,int> fecha(Anho.first,Mes.first);
-                // Si la clave ya existe, agregar la cantidad al valor existente
                 fechaSku2[fecha][Sku.first]++;
             }
         }
     }
+    /*--- Fin ---*/
     
+    /*--- Verificación temporal ---*/
     int contador;
-    
     contador=0;
     for(const auto& Fecha: fechaSku1){
         std::cout << Fecha.first.first << "/" << Fecha.first.second << std::endl;
@@ -281,6 +273,7 @@ int main() {
     std::cout << "Contador 2: " << contador << std::endl;
     if(Vector4==Vector5){std::cout<<"SON IGUALES"<<std::endl;}
     getchar();
+    /*--- Fin ---*/
     
     //Guardar canasta mensual/anual en archivo
     
