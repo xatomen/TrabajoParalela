@@ -34,7 +34,7 @@ int main() {
     
     while(true){
         readExcelChunk(filename, startRow, chunkSize, penToClp, daysPerMonth);
-        if(startRow==3734){
+        if(startRow==3734){                                                                 //@todo: !!!VER ESTO!!!
             break; // Termina si no hay más filas por leer
         }
     }
@@ -193,10 +193,21 @@ int main() {
         mesBase = mesActual;                                                    //Actualizamos el mes base con el mes que acabamos de usar
         mesBaseClp = mesActualClp;
     }
-
     getchar();
     /*--- Fin ---*/
-    //IPC máximo entre 10-15%
+    
+    /*--- Calculamos la canasta básica de todos los años ---*/
+    
+    
+    
+    /*--- Fin ---*/
+    
+    /*--- Calculamos la variación intermensual de la canasta básica ---*/
+    
+    
+    
+    /*--- Fin ---*/
+    
     return 0;
 }
 
