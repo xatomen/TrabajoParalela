@@ -17,152 +17,44 @@
 using namespace std;
 using namespace libxl;
 
-std::map<std::pair<int,int>,double> PEN_CLP;  //pair(anho,mes),pesos
-std::map<std::pair<int,int>,int> FECHAS; //pair(anho,mes),dias
-std::map<std::pair<int,int>,float> SolesToPesos;
-
 /*--- Función que permite leer el archivo xlsx por chunks (para evitar errores) ---*/
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize);
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth);
+void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos);
+void parseCsv(std::string& filename, std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& MapaProductos);
 
 int main() {
+    
     /*--- Lectura archivo xlsx ---*/
     std::cout << "-- Lectura excel --" << std::endl;
+    std::map<std::pair<int,int>,double> penToClp;  //pair(anho,mes),pesos
+    std::map<std::pair<int,int>,int> daysPerMonth; //pair(anho,mes),dias
     std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
     int startRow = 7;
-//    int endRow = 0;
     int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
     
     while(true){
-        readExcelChunk(filename, startRow, chunkSize);
+        readExcelChunk(filename, startRow, chunkSize, penToClp, daysPerMonth);
         if(startRow==3734){
             break; // Termina si no hay más filas por leer
         }
     }
     /*--- Guardamos la transformación de moneda en un map*/
-    auto pesos = PEN_CLP.begin();
-    auto dias = FECHAS.begin();
-    for(; pesos!=PEN_CLP.end() && dias!=FECHAS.end(); pesos++, dias++){
-//        std::cout << pesos->first.first << "/" << pesos->first.second << "\t- dias: " << dias->second << " suma: " << pesos->second << std::endl;
-        std::pair<int,int> fecha(pesos->first.first,pesos->first.second);   //Asignamos el promedio de pesos a cada mes
-        SolesToPesos[fecha] = pesos->second/dias->second;
-    }
+    std::map<std::pair<int,int>,float> solesToPesos;
+    insertValueInMap(penToClp, daysPerMonth, solesToPesos);
     /*--- Imprimimos la transformación de moneda por mes ---*/
-    for(auto& map: SolesToPesos){
-        std::cout << map.first.first << "/" << map.first.second << "\t- " << map.second << std::endl;
-    }
+//    for(auto& map: solesToPesos){
+//        std::cout << map.first.first << "/" << map.first.second << "\t- " << map.second << std::endl;
+//    }
     std::cout << "-- Excel listo --" << std::endl;
-//    getchar();
     /*--- Fin ---*/
     
-    /*--- Lectura archivo csv ---*/
-    std::ifstream archivo("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
-    std::string linea;
-    char delimitador = ';';
-    char comilla = '\"';
-    getline(archivo, linea);    //Leemos el "encabezado" del texto
-    
-//    clock_t t;
-//    t = clock();
-    
+    /*--- Parseo CSV ---*/
+    std::cout << "--- Parseo CSV ---" << std::endl;
     /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
     std::map<std::string, std::map<int, std::map<int, std::vector<float> > > > MapaProductos;
-    //mapa fecha-pesos para excel
-    //usar mediana para los precios (criterio) y la variacion de precios (mediana)
-    
-    /*Utilizaremos este while para obtener la cantidad de líneas, para luego paralelizar la lectura*/
-    std::cout << "-- Cargado de líneas --" << std::endl;
-    int k=0;
-    std::ifstream arch_csv("/home/jorge/Escritorio/Proyectos/Datos/pd.csv");
-    std::string line;
-    while(getline(arch_csv,line)){
-        k++;
-    }
-    std::cout << "k: " << k << std::endl;
-    std::cout << "-- Cargado de lineas listo --" << std::endl;
-//    getchar();
-    /*--- Fin ---*/
-    
-    /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
-    std::cout << "-- Parseo csv --" << std::endl;
-    int i = 0;
-    while(getline(archivo,linea)){
-        //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
-        
-        /*---- Cargamos la línea en memoria como stream ----*/
-        std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
-        /*--- Fin ---*/
-        
-        /*---- Leer Fecha ----*/
-        getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
-        //Solo utilizamos año y mes
-        int anho = stoi(linea.substr(1,4)); //Extraer el año
-        int mes = stoi(linea.substr(6,2));  //Extraer el mes
-        /*--- Fin ---*/
-        
-        /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
-        for(int j=0; j<5; j++){
-            getline(stream,linea,delimitador);
-        }
-        /*--- Fin ---*/
-        
-        /*---- Leer SKU del producto ----*/
-        std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
-        getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
-        /*--- Fin ---*/
-        
-        /*--- Leemos quantity ---*/
-        getline(stream,linea,delimitador);  //Cantidad
-        std::string str_quantity = linea;
-        str_quantity = str_quantity.substr(1,str_quantity.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
-        int quantity = stoi(str_quantity);                                //Obtenemos el quantity en int
-        /*--- Fin ---*/
-        
-        /*
-         * Para el campo nombre:
-         * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
-         * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)
-        */
-        std::string name;
-        if(linea[0]==comilla){
-            getline(stream,name, comilla);     //Buscamos las primeras comillas
-            getline(stream,name, comilla);      //Buscamos las segundas comillas
-            /*
-             *Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar
-             */
-            while(!stream.good()){  //Mientras el stream no sea correcto, no saldremos del while
-                i++;    //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
-                getline(archivo,linea); //Saltamos a la siguiente línea
-                stream.clear();                             //Limpiamos el stream
-                stream.str(linea);                       //Asignamos la nueva línea
-                getline(stream,name, comilla);  //Volvemos a buscar la comilla faltante
-            }
-        }
-        getline(stream,name,delimitador);  //Nombre
-        /*--- Fin ---*/
-        
-        /*---- Leer amount/costo del producto ----*/
-        std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
-        getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
-        str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
-        float amount = stof(str_amount);                                //Obtenemos el amount en float
-        
-        /*--- Ponemos los datos en el map anidado ---*/
-        if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
-            MapaProductos[sku][anho][mes] = {0, 0};
-        }
-        for(int qty=0; qty<quantity; qty++){    //Sumamos la cantidad de veces que se adquirió el producto/sku
-            MapaProductos[sku][anho][mes][0]++;
-            MapaProductos[sku][anho][mes][1]+= amount;
-        }
-        i++;    //Incrementamos el contador
-//        if(i==30000000)break;
-    }
-//    t = clock() - t;
-//    std::cout << "clock t = " << t << std::endl;
-//    std::cout << "length = " << i << std::endl;
-    archivo.close();
+    std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
+    parseCsv(archivo,MapaProductos);
     std::cout << "--- Parseo listo ---" << std::endl;
-//    getchar();
     /*--- Fin ---*/
     
     /*--- Obtención canasta básica ---*/
@@ -299,7 +191,7 @@ int main() {
     return 0;
 }
 
-void readExcelChunk(const std::string& filename, int& startRow, int chunkSize){
+void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth){
     Book* book = xlCreateXMLBook();
     if(book){
         if(book->load(filename.c_str())){ // Carga el archivo Excel
@@ -315,14 +207,14 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize){
                     
                     //Ingresamos el dato en el mapa PEN_CLP
                     std::pair<int,int> fecha(year,month);
-                    if (PEN_CLP.count(fecha) > 0) {
-                        PEN_CLP[fecha] += num; // Cantidad de productos
-                        FECHAS[fecha]+=1;
+                    if (penToClp.count(fecha) > 0) {
+                        penToClp[fecha] += num; // Cantidad de productos
+                        daysPerMonth[fecha]+=1;
                     }
                     else {
                         // Si la clave no existe, crear una nueva entrada con la cantidad
-                        PEN_CLP[fecha] = num;
-                        FECHAS[fecha]+=1;
+                        penToClp[fecha] = num;
+                        daysPerMonth[fecha]+=1;
                     }
                 }
                 startRow = endRow;
@@ -339,5 +231,103 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize){
     else{
         std::cerr << "Error: No se pudo crear el libro." << std::endl;
     }
+    
+}
+
+void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos){
+    auto pesos = penToClp.begin();
+    auto dias = daysPerMonth.begin();
+    for(; pesos!=penToClp.end() && dias!=daysPerMonth.end(); pesos++, dias++){
+//        std::cout << pesos->first.first << "/" << pesos->first.second << "\t- dias: " << dias->second << " suma: " << pesos->second << std::endl;
+        std::pair<int,int> fecha(pesos->first.first,pesos->first.second);   //Asignamos el promedio de pesos a cada mes
+        solesToPesos[fecha] = pesos->second/dias->second;
+    }
+}
+
+void parseCsv(std::string& filename, std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& MapaProductos){
+    
+    /*--- Lectura archivo csv ---*/
+    std::fstream archivo(filename);
+    std::string linea;
+    char delimitador = ';';
+    char comilla = '\"';
+    getline(archivo, linea);    //Leemos el "encabezado" del texto
+    
+    /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
+    std::cout << "-- Parseo csv --" << std::endl;
+    int i = 0;
+    while(getline(archivo,linea)){
+        //Si en la línea, el primer campo a leer posee el número "2" perteneciente a la fecha, entonces leemos; en caso contrario, saltamos la línea
+        
+        /*---- Cargamos la línea en memoria como stream ----*/
+        std::stringstream stream(linea);    //Creamos una variable stringstream con el contenido de la línea
+        /*--- Fin ---*/
+        
+        /*---- Leer Fecha ----*/
+        getline(stream,linea,delimitador);  //Obtenemos la fecha en ISO de la compra
+        //Solo utilizamos año y mes
+        int anho = stoi(linea.substr(1,4)); //Extraer el año
+        int mes = stoi(linea.substr(6,2));  //Extraer el mes
+        /*--- Fin ---*/
+        
+        /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
+        for(int j=0; j<5; j++){
+            getline(stream,linea,delimitador);
+        }
+        /*--- Fin ---*/
+        
+        /*---- Leer SKU del producto ----*/
+        std::string sku;                                //Declaramos la variable sku que contendrá el sku del producto
+        getline(stream,sku,delimitador);  //Obtenemos el Sku del producto comprado
+        /*--- Fin ---*/
+        
+        /*--- Leemos quantity ---*/
+        getline(stream,linea,delimitador);  //Cantidad
+        std::string str_quantity = linea;
+        str_quantity = str_quantity.substr(1,str_quantity.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
+        int quantity = stoi(str_quantity);                                //Obtenemos el quantity en int
+        /*--- Fin ---*/
+        
+        /*
+         * Para el campo nombre:
+         * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
+         * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)
+        */
+        std::string name;
+        if(linea[0]==comilla){
+            getline(stream,name, comilla);     //Buscamos las primeras comillas
+            getline(stream,name, comilla);      //Buscamos las segundas comillas
+            /*
+             *Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar
+             */
+            while(!stream.good()){  //Mientras el stream no sea correcto, no saldremos del while
+                i++;    //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
+                getline(archivo,linea); //Saltamos a la siguiente línea
+                stream.clear();                             //Limpiamos el stream
+                stream.str(linea);                       //Asignamos la nueva línea
+                getline(stream,name, comilla);  //Volvemos a buscar la comilla faltante
+            }
+        }
+        getline(stream,name,delimitador);  //Nombre
+        /*--- Fin ---*/
+        
+        /*---- Leer amount/costo del producto ----*/
+        std::string str_amount;                                             //Declaramos la variable str_amount, que corresponde al string del amount del producto
+        getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
+        str_amount = str_amount.substr(1,str_amount.length()-2);    //Debemos eliminar las comillas del string para transformarlo en float
+        float amount = stof(str_amount);                                //Obtenemos el amount en float
+        
+        /*--- Ponemos los datos en el map anidado ---*/
+        if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
+            MapaProductos[sku][anho][mes] = {0, 0};
+        }
+        for(int qty=0; qty<quantity; qty++){    //Sumamos la cantidad de veces que se adquirió el producto/sku
+            MapaProductos[sku][anho][mes][0]++;
+            MapaProductos[sku][anho][mes][1]+= amount;
+        }
+        i++;    //Incrementamos el contador
+//        if(i==300000)break;
+    }
+    archivo.close();
     
 }
