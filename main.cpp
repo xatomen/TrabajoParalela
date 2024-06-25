@@ -1,3 +1,16 @@
+/*------------------------------------------------------
+ *                  Trabajo 1
+ *
+ * Asignatura: Computación paralela y distribuida
+ * Sección: 411
+ * Profesor: Sebastian Salazar Molina
+ *
+ * Integrantes: - Jorge Luis Gallardo Contreras
+ *              - Fernando Tomás Maldonado Rodríguez
+ *              - Felipe Ignacio Vera Andrade
+ *
+ * ----------------------------------------------------*/
+
 #include <iostream>
 //#include "Producto.h"
 #include <cstdio>
@@ -11,13 +24,13 @@
 #include <map>
 #include "Moneda.h"
 #include "libxl-4.3.0.14/include_cpp/libxl.h"
-//xlsxio
-//ANOTAR PREGUNTAS CUANDO LAS TENGA!!!!!!!
+#include <set>
+#include <chrono>
 
 using namespace std;
 using namespace libxl;
 
-/*--- Función que permite leer el archivo xlsx por chunks (para evitar errores) ---*/
+/*--- Prototipo de funciones ---*/
 void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth);
 void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos);
 void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& MapaProductos);
@@ -28,6 +41,10 @@ void calculateInteranualVariation(std::map <std::pair<int,int>, double>& ValorCa
 
 
 int main() {
+    
+    /*--- Iniciamos cronómetro ---*/
+    auto start = std::chrono::high_resolution_clock::now(); //Iniciamos cronómetro
+    /*--- Fin ---*/
     
     /*--- Lectura archivo xlsx ---*/
     std::cout << "-- Lectura excel --" << std::endl;
@@ -46,10 +63,6 @@ int main() {
     /*--- Guardamos la transformación de moneda en un map*/
     std::map<std::pair<int,int>,float> solesToPesos;
     insertValueInMap(penToClp, daysPerMonth, solesToPesos);
-    /*--- Imprimimos la transformación de moneda por mes ---*/
-//    for(auto& map: solesToPesos){
-//        std::cout << map.first.first << "/" << map.first.second << "\t- " << map.second << std::endl;
-//    }
     std::cout << "-- Excel listo --" << std::endl;
     /*--- Fin ---*/
     
@@ -59,6 +72,7 @@ int main() {
     std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
     sequentialParseCsv(archivo,MapaProductos);
     /*--- Fin ---*/
+    
     /*--- Obtención de la canasta básica para la variación intermensual ---*/
     std::map <std::pair<int,int>, double> ValorCanastaMensual = filterBasicBasketForIntermensualVariation(MapaProductos);
     /*--- Fin ---*/
@@ -73,6 +87,12 @@ int main() {
     
     /*--- Calculamos la variación interanual de la canasta básica ---*/
     calculateInteranualVariation(ValorCanastaAnual, solesToPesos);
+    /*--- Fin ---*/
+    
+    /*--- Finalizamos cronómetro ---*/
+    auto end = std::chrono::high_resolution_clock::now();                             // Registrar el tiempo de finalización
+    std::chrono::duration<double> duration = end - start;                                           // Calcular la duración
+    std::cout << "--- Tiempo de ejecución: " << duration.count() << " segundos ---" << std::endl;   // Imprimir la duración en segundos
     /*--- Fin ---*/
     
     return 0;
@@ -213,7 +233,7 @@ void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int
             MapaProductos[sku][anho][mes][1]+= amount;
         }
         i++;    //Incrementamos el contador
-        if(i==5000000)break;
+//        if(i==5000000)break;
     }
     archivo.close();
     
@@ -238,41 +258,34 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
     /*--- Fin ---*/
     
     /*--- Guardamos en un mapa, la cantidad de meses de cada año ---*/
-    std::map<int, int> mesesPorAnho;    // mesesPorAnho {año,mes}
+    std::map<int, int> mesesPorAnho;                        // mesesPorAnho {año,mes}
     for (const auto& entry : fechaSku1){    //Recorremos el mapa fechaSku1
         mesesPorAnho[entry.first.first]++;                  //Cada vez que pasemos por un mes, aumentamos el contador
     }
     /*--- Fin ---*/
     
-    /*Recorrer y eliminar años con menos de 12 meses*/
-    int mesesAnho;
-    for (auto& Sku : MapaProductos) {
-        auto it = Sku.second.begin();                   //Declaramos e inicializamos un iterador sobre el año actual
-        mesesAnho = mesesPorAnho[it->first];                        //Recuperamos la cantidad de meses en el año actual
-        /*--- En este while buscamos los SKUs que no se encuentren en todos los meses del año y los eliminamos ---*/
-        while(it != Sku.second.end()){                              //Iteramos mientras no lleguemos al año final
-            if(it->second.size() < mesesAnho){                      //Si el sku, no se encuentra presenta en todos los meses del año, lo eliminamos
-                it = Sku.second.erase(it);                  //Eliminar solo el año y avanzar el iterador
+    /*-- Eliminamos los años que no tienen todos los meses correspondientes*/
+    for(auto& sku : MapaProductos){                                              //Recorremos cada sku
+        for(auto anhoIt = sku.second.begin(); anhoIt != sku.second.end(); ){    //Recorremos cada año
+            int anho = anhoIt->first;                                                       //Creamos una variable año para facilitar la lectura del código
+            if(anhoIt->second.size() < mesesPorAnho[anho]){                                 //Si el sku no está en todos los meses del año, debemos eliminar la fecha del sku
+                anhoIt = sku.second.erase(anhoIt);                                  //Eliminamos el año del sku
             }
             else{
-                ++it; // Solo incrementamos el iterador
+                ++anhoIt;                                                                   //Iteramos y pasamos al siguiente año
             }
         }
-        /*--- Fin ---*/
     }
-    /*--- Fin ---*/
     
-    /*--- Recorrer y eliminar SKU sin años (ya que anteriormente solo eliminamos los años) ---*/
-    auto skuIt = MapaProductos.begin();     //Inicializamos un nuevo iterador
-    while(skuIt != MapaProductos.end()){                //Iteramos mientras no lleguemos al final
-        if(skuIt->second.empty()){                      //Si el SKU no tiene un elemento "par", que es el/los años, entonces lo eliminamos
-            skuIt = MapaProductos.erase(skuIt); // Eliminar SKU y avanzar el iterador
+    /*--- Eliminamos los SKUs que se hayan quedado sin años durante el filtrado de la canasta básica ---*/
+    for(auto skuIt = MapaProductos.begin(); skuIt != MapaProductos.end(); ){    //Recorremos cada sku
+        if(skuIt->second.empty()){                                                          //Si el sku no tiene registros, lo eliminamos
+            skuIt = MapaProductos.erase(skuIt);                                     //Eliminamos el sku del map y apuntamos al siguiente sku
         }
         else{
-            ++skuIt;                                    // Solo incrementamos el iterador
+            ++skuIt;                                                                        //Iteramos y pasamos al siguiente sku
         }
     }
-    /*--- Fin ---*/
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
     /*--- Con esto obtenemos la canasta básica por año ---*/
@@ -324,41 +337,35 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     }
     /*--- Fin ---*/
     
-    /*--- Guardamos en un mapa, la cantidad de meses de cada año ---*/
-    std::map<int, int> mesesPorAnho;    // mesesPorAnho {año,mes}
-    for (const auto& entry : fechaSku1){    //Recorremos el mapa fechaSku1
-        mesesPorAnho[entry.first.first]++;                  //Cada vez que pasemos por un mes, aumentamos el contador
+    /*--- Crear un conjunto de fechas (años y meses) que se encontraron durante la lectura ---*/
+    std::set<std::pair<int, int>> todasLasFechas;
+    for (const auto& sku : MapaProductos) {
+        for (const auto& anho : sku.second) {
+            for (const auto& mes : anho.second) {
+                todasLasFechas.emplace(anho.first, mes.first);  //Ingresamos la fecha en el set
+            }
+        }
+    }
+    
+    /*--- Verificar cada SKU y eliminar los que no estén presentes en todas las fechas de cada año ---*/
+    for(auto skuIt = MapaProductos.begin(); skuIt != MapaProductos.end(); ){        //Iteramos sobre cada sku
+        bool estaPresenteEnTodasLasFechas = true;                                               //Para cada sku, verificamos si se encuentra presente en todos los meses de todos los años
+        for(const auto& fecha : todasLasFechas){                             //Iteramos sobre cada fecha
+            int anho = fecha.first;                                                             //Asignamos el año a una variable para facilitar la lectura del código
+            int mes = fecha.second;                                                             //Asignamos el mes a una variable para facilitar la lectura del código
+            if(skuIt->second.count(anho) == 0 || skuIt->second[anho].count(mes) == 0){    //Si en el año o mes buscado no se encuentra presente el sku, deberá ser eliminado
+                estaPresenteEnTodasLasFechas = false;                                           //Indicamos que el sku no se encuentra disponible en todas las fechas consultadas
+                break;                                                                          //Salimos del for
+            }
+        }
+        if(!estaPresenteEnTodasLasFechas){                                                      //Si el sku no se encuentra disponible en todas las fechas, lo eliminamos del map
+            skuIt = MapaProductos.erase(skuIt);                                         //Eliminamos el sku del map y apuntamos al siguiente sku
+        }
+        else{
+            ++skuIt;                                                                            //Si está presente en todas, pasamos al siguiente sku
+        }
     }
     /*--- Fin ---*/
-    
-    // Verificar cada SKU y eliminar los que no estén presentes en todas las fechas
-    for (auto skuIt = MapaProductos.begin(); skuIt != MapaProductos.end(); ) {
-        bool estaPresenteEnTodasLasFechas = true;
-        for (const auto& fecha : mesesPorAnho) {
-            int anho = fecha.first;
-            int mes = fecha.second;
-//            std::cout << "Año: " << anho << " Mes: " << mes << std::endl;
-            if (skuIt->second.count(anho) == 0 || skuIt->second[anho].count(mes) == 0) {
-                estaPresenteEnTodasLasFechas = false;
-                break;
-            }
-        }
-        if (!estaPresenteEnTodasLasFechas) {
-            skuIt = MapaProductos.erase(skuIt);
-        } else {
-            std::cout << "Está presente en todas: " << skuIt->first << std::endl;
-            for(const auto& fecha: skuIt->second){
-                std::cout << "\tAño: " << fecha.first << "\tCantidad: " << std::endl;
-                for(const auto& mes: fecha.second){
-                    std::cout << "\t\tMes: " << mes.first << std::endl;
-                }
-            }
-            getchar();
-            ++skuIt;
-        }
-    }
-//    getchar();
-    //Fin
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
     /*--- Con esto obtenemos la canasta básica por año ---*/
@@ -434,44 +441,37 @@ void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& Valor
     /*--- Fin ---*/
 }
 
-void calculateInteranualVariation(std::map <std::pair<int,int>, double>& ValorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos){
+void calculateInteranualVariation(std::map <std::pair<int,int>, double>& ValorCanastaAnual, std::map<std::pair<int,int>,float>& solesToPesos){
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
     std::cout << "--- Variación interanual ---" << std::endl;
     //Inicializamos algunas variables que utilizaremos
     double mesBase;
     double mesBaseClp;
+    int fechaMesBase;
     bool flag = false;
-    double varAcumulado = 0;
-    double varAcumuladoClp = 0;
     int anhoActual;
     //En el siguiente for, lo que hacemos es recorrer todos los meses y años del valor de canasta mensual
-    for(auto& vcm : ValorCanastaMensual){
+    for(auto& vcm : ValorCanastaAnual){
         /*Si es el primer mes, lo usamos como mes base inicial*/
         if(!flag){                                                                                    //Si el flag es falso, entonces es el primer mes del primer año
             anhoActual = vcm.first.first;                                                             //El año actual será el mes base
+            fechaMesBase = vcm.first.second;                                                          //El mes base en fecha será el primer mes
             mesBase = vcm.second;                                                                     //El mes base será el primer mes
             mesBaseClp = mesBase * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];   //El mes base será el primer mes
             flag = true;                                                                              //Cambiamos el flag para que no volvamos a entrar a la condición
         }
-        /*Verificamos si cambiamos de año*/
-        if(anhoActual != vcm.first.first){                                                              //Si el año actual (anterior) es distinto al nuevo, tuvimos un cambio de año, por lo que reseteamos las variables
-            mesBase = vcm.second;                                                                       //Mes base será igual nuevo mes base
-            mesBaseClp = mesBase * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];     //Mes base será igual nuevo mes base
-            anhoActual = vcm.first.first;                                                               //Año actual será igual al nuevo año
-            varAcumulado = 0;                                                                           //Reseteamos la variación acumulada
-            varAcumuladoClp = 0;                                                                        //Reseteamos la variación acumulada
-            std::cout << "--- Nuevo año ---" << std::endl;
-        }
         double mesActual = vcm.second;                                          //Asignamos el mes actual
         double mesActualClp = mesActual * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];
-        double variacionIntermensual = ((mesActual/mesBase) - 1)*100;           //Calculamos la variación intermensual entre ambos meses
-        double variacionIntermensualClp = ((mesActualClp/mesBaseClp) - 1)*100;  //Calculamos la variación intermensual entre ambos meses
-        varAcumulado += variacionIntermensual;                                  //Sumamos la variación
-        varAcumuladoClp += variacionIntermensualClp;                            //Sumamos la variación
-        std::cout << vcm.first.first << "/" << vcm.first.second << "\tVariación intermensual: " << variacionIntermensual << "%\tVariación acumulada: " << varAcumulado << "%\tCLP: " << solesToPesos[std::pair{vcm.first.first,vcm.first.second}] << "\tVariación intermensual CLP: " << variacionIntermensualClp << "%\tVariación acumulada: " << varAcumuladoClp << "%" << std::endl;
-        mesBase = mesActual;                                                    //Actualizamos el mes base con el mes que acabamos de usar
-        mesBaseClp = mesActualClp;
+        
+        /*Verificamos si cambiamos de año*/
+        if(anhoActual != vcm.first.first && fechaMesBase == vcm.first.second){                                        //Si el año actual (anterior) es distinto al nuevo, tuvimos un cambio de año, por lo que calculamos la variación interanual
+            double variacionInteranual = ((mesActual/mesBase) - 1)*100;           //Calculamos la variación intermensual entre ambos meses
+            double variacionInteranualClp = ((mesActualClp/mesBaseClp) - 1)*100;  //Calculamos la variación intermensual entre ambos meses
+            std::cout << anhoActual << "/" << fechaMesBase << " - " <<vcm.first.first << "/" << vcm.first.second << "\tVariación interanual: " << variacionInteranual << "%\tCLP: " << solesToPesos[std::pair{vcm.first.first,vcm.first.second}] << "\tVariación interanual CLP: " << variacionInteranualClp << "%" << std::endl;
+            anhoActual = vcm.first.first;       //Asignamos el nuevo año actual, el mes se mantiene, por lo que no se cambia
+            mesBase = mesActual;                //Actualizamos el mes base
+            mesBaseClp = mesActualClp;
+        }
     }
-//    getchar();
     /*--- Fin ---*/
 }
