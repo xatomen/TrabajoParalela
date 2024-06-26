@@ -172,17 +172,21 @@ void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int
     std::string fecha;
     std::string str_amount;
     /*--- Fin ---*/
+    /*---- Cargamos la línea en memoria como stream ----*/
+    std::stringstream stream;     //Creamos una variable stringstream con el contenido de la línea
     
     int i = 0;
     while(getline(archivo,linea)){
-        /*---- Cargamos la línea en memoria como stream ----*/
-        std::stringstream stream(linea);                               //Creamos una variable stringstream con el contenido de la línea
+        stream.clear();
+        stream.str(linea);
         /*--- Extraemos los datos de la línea leída ---*/
         getline(stream,fecha,delimitador);                     //Obtenemos la fecha en ISO de la compra
         /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
-        for(int j=0; j<5; j++){
-            getline(stream,linea,delimitador);
-        }
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
         getline(stream,sku,delimitador);                       //Obtenemos el Sku del producto comprado
         getline(stream,str_quantity,delimitador);              //Cantidad
         /*Para el campo nombre:
@@ -217,10 +221,8 @@ void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int
         if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
             MapaProductos[sku][anho][mes] = {0, 0};
         }
-        for(int qty=0; qty<quantity; qty++){            //Sumamos la cantidad de veces que se adquirió el producto/sku
-            MapaProductos[sku][anho][mes][0]++;         //Incrementamos la cantidad de sku en esa fecha
-            MapaProductos[sku][anho][mes][1]+= amount;  //Sumamos el precio del sku en esa fecha
-        }
+        MapaProductos[sku][anho][mes][0] += quantity;
+        MapaProductos[sku][anho][mes][1] += (amount*quantity);
         i++;                                            //Incrementamos el contador
 //        if(i==5000000)break;
     }
