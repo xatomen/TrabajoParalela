@@ -34,6 +34,7 @@ using namespace libxl;
 void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth);
 void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos);
 void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& MapaProductos);
+void parallelParseCsv(std::string& filename, std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& MapaProductos);
 std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal);
 std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(std::map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal);
 void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& ValorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos);
@@ -71,6 +72,7 @@ int main() {
     std::map<std::string, std::map<int, std::map<int, std::vector<float>>>> MapaProductos;
     std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
     sequentialParseCsv(archivo,MapaProductos);
+//    parallelParseCsv(archivo,MapaProductos);
     /*--- Fin ---*/
     
     /*--- Obtención de la canasta básica para la variación intermensual ---*/
@@ -209,12 +211,10 @@ void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int
         /*--- Fin ---*/
         
         /*--- Asignamos la información extraída ---*/
-        anho = stoi(fecha.substr(1,4));                                 //Extraer el año
-        mes = stoi(fecha.substr(6,2));                                  //Extraer el mes
-        str_quantity = str_quantity.substr(1,str_quantity.length()-2);      //Debemos eliminar las comillas del string para transformarlo en float
-        quantity = stoi(str_quantity);                                          //Obtenemos el quantity en int
-        str_amount = str_amount.substr(1,str_amount.length()-2);            //Debemos eliminar las comillas del string para transformarlo en float
-        amount = stof(str_amount);                                              //Obtenemos el amount en float
+        anho = stoi(fecha.substr(1,4));                                                 //Extraer el año
+        mes = stoi(fecha.substr(6,2));                                                  //Extraer el mes
+        quantity = stoi(str_quantity.substr(1,str_quantity.length()-2)); //Debemos eliminar las comillas del string para transformarlo en float
+        amount = stof(str_amount.substr(1,str_amount.length()-2));                      //Debemos eliminar las comillas del string para transformarlo en float
         /*--- Fin ---*/
         
         /*--- Ponemos los datos en el map anidado ---*/
@@ -226,6 +226,84 @@ void sequentialParseCsv(std::string& filename, std::map<std::string,std::map<int
         i++;                                            //Incrementamos el contador
 //        if(i==5000000)break;
     }
+    archivo.close();
+}
+
+void parallelParseCsv(std::string& filename, std::map<std::string, std::map<int, std::map<int, std::vector<float>>>>& MapaProductos) {
+    std::cout << "-- Parseo csv --" << std::endl;
+    /*--- Lectura archivo csv ---*/
+    std::fstream archivo(filename);
+    std::string linea;
+    char delimitador = ';';
+    char comilla = '\"';
+    getline(archivo, linea);    //Leemos el "encabezado" del texto
+    
+    /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
+    
+    /*--- Declaramos las variables ---*/
+    int anho, mes;
+    int quantity;
+    float amount;
+    std::string sku;
+    std::string name;
+    std::string str_quantity;
+    std::string fecha;
+    std::string str_amount;
+    /*--- Fin ---*/
+    /*---- Cargamos la línea en memoria como stream ----*/
+    std::stringstream stream;     //Creamos una variable stringstream con el contenido de la línea
+    
+    int i = 0;
+    while(getline(archivo,linea)){
+        stream.clear();
+        stream.str(linea);
+        /*--- Extraemos los datos de la línea leída ---*/
+        getline(stream,fecha,delimitador);                     //Obtenemos la fecha en ISO de la compra
+        /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,linea,delimitador);
+        getline(stream,sku,delimitador);                       //Obtenemos el Sku del producto comprado
+        getline(stream,str_quantity,delimitador);              //Cantidad
+        /*Para el campo nombre:
+         * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
+         * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)*/
+        if(linea[0]==comilla){
+            getline(stream,name, comilla);                     //Buscamos las primeras comillas
+            getline(stream,name, comilla);                     //Buscamos las segundas comillas
+            /*Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar*/
+            while(!stream.good()){                                         //Mientras el stream no sea correcto, no saldremos del while
+                i++;                                                       //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
+                getline(archivo,linea);                              //Saltamos a la siguiente línea
+                stream.clear();                                            //Limpiamos el stream
+                stream.str(linea);                                      //Asignamos la nueva línea
+                getline(stream,name, comilla);                 //Volvemos a buscar la comilla faltante
+            }
+        }
+        getline(stream,name,delimitador);                      //Obtenemos el nombre del producto
+        getline(stream,str_amount,delimitador);                //Obtenemos el amount del producto
+        /*--- Fin ---*/
+
+        /*--- Asignamos la información extraída ---*/
+        anho = stoi(fecha.substr(1,4));                                                 //Extraer el año
+        mes = stoi(fecha.substr(6,2));                                                  //Extraer el mes
+        quantity = stoi(str_quantity.substr(1,str_quantity.length()-2)); //Debemos eliminar las comillas del string para transformarlo en float
+        amount = stof(str_amount.substr(1,str_amount.length()-2));                      //Debemos eliminar las comillas del string para transformarlo en float
+        /*--- Fin ---*/
+//        std::cout << anho << "/" << mes << "\t Quantity: " << quantity << "\t Amount: " << amount << std::endl;
+//        getchar();
+        /*--- Ponemos los datos en el map anidado ---*/
+        if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
+            MapaProductos[sku][anho][mes] = {0, 0};
+        }
+        MapaProductos[sku][anho][mes][0] += quantity;
+        MapaProductos[sku][anho][mes][1] += (amount*quantity);
+        i++;                                            //Incrementamos el contador
+//        if(i==5000000)break;
+    }
+    
     archivo.close();
 }
 
@@ -301,9 +379,9 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
     }
     /*--- Fin ---*/
     /*--- Imprimimos el precio promedio de la canasta mensual*/
-    for(auto& map : ValorCanastaMensual){
-        std::cout << map.first.first << "/" << map.first.second << "\t- Valor canasta: " << map.second << std::endl;
-    }
+//    for(auto& map : ValorCanastaMensual){
+//        std::cout << map.first.first << "/" << map.first.second << "\t- Valor canasta: " << map.second << std::endl;
+//    }
     /*--- Fin ---*/
     
     return ValorCanastaMensual;
@@ -372,18 +450,22 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     
     /*--- Mapa del valor de la canasta mensual ---*/
     std::map <std::pair<int,int>, double> ValorCanastaMensual;
-    
+    int contador;
     /*--- Obtenemos el total de productos por fecha ---*/
     for(auto& fecha : fechaSku2){
+        contador=0;
         for(auto& sku : fecha.second){
             ValorCanastaMensual[fecha.first] += sku.second;
+            contador++;
         }
+        std::cout << fecha.first.first << "/" << fecha.first.second << "\tCantidad skus: " << contador << std::endl;
     }
+    getchar();
     /*--- Fin ---*/
     /*--- Imprimimos el precio promedio de la canasta mensual*/
-    for(auto& map : ValorCanastaMensual){
-        std::cout << map.first.first << "/" << map.first.second << "\t- Valor canasta: " << map.second << std::endl;
-    }
+//    for(auto& map : ValorCanastaMensual){
+//        std::cout << map.first.first << "/" << map.first.second << "\t- Valor canasta: " << map.second << std::endl;
+//    }
     /*--- Fin ---*/
     
     return ValorCanastaMensual;
@@ -435,33 +517,39 @@ void calculateInteranualVariation(std::map <std::pair<int,int>, double>& ValorCa
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
     std::cout << "--- Variación interanual ---" << std::endl;
     //Inicializamos algunas variables que utilizaremos
-    double mesBase;
-    double mesBaseClp;
-    int fechaMesBase;
-    bool flag = false;
-    int anhoActual;
+    
+    std::map<int,double> sumaPorAnho; //  año-{canastaEnSoles,canastaEnClp}
+    std::map<int,int> mesesPorAnho;
+    std::map<int,double> valorPromedioCanasta;
     //En el siguiente for, lo que hacemos es recorrer todos los meses y años del valor de canasta mensual
     for(auto& vcm : ValorCanastaAnual){
-        /*Si es el primer mes, lo usamos como mes base inicial*/
-        if(!flag){                                                                                    //Si el flag es falso, entonces es el primer mes del primer año
-            anhoActual = vcm.first.first;                                                             //El año actual será el mes base
-            fechaMesBase = vcm.first.second;                                                          //El mes base en fecha será el primer mes
-            mesBase = vcm.second;                                                                     //El mes base será el primer mes
-            mesBaseClp = mesBase * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];   //El mes base será el primer mes
-            flag = true;                                                                              //Cambiamos el flag para que no volvamos a entrar a la condición
-        }
-        double mesActual = vcm.second;                                          //Asignamos el mes actual
-        double mesActualClp = mesActual * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];
-        
-        /*Verificamos si cambiamos de año*/
-        if(anhoActual != vcm.first.first && fechaMesBase == vcm.first.second){                                        //Si el año actual (anterior) es distinto al nuevo, tuvimos un cambio de año, por lo que calculamos la variación interanual
-            double variacionInteranual = ((mesActual/mesBase) - 1)*100;           //Calculamos la variación intermensual entre ambos meses
-            double variacionInteranualClp = ((mesActualClp/mesBaseClp) - 1)*100;  //Calculamos la variación intermensual entre ambos meses
-            std::cout << anhoActual << "/" << fechaMesBase << " - " <<vcm.first.first << "/" << vcm.first.second << "\tVariación interanual: " << variacionInteranual << "%\tCLP: " << solesToPesos[std::pair{vcm.first.first,vcm.first.second}] << "\tVariación interanual CLP: " << variacionInteranualClp << "%" << std::endl;
-            anhoActual = vcm.first.first;       //Asignamos el nuevo año actual, el mes se mantiene, por lo que no se cambia
-            mesBase = mesActual;                //Actualizamos el mes base
-            mesBaseClp = mesActualClp;
-        }
+        int anhoActual = vcm.first.first;
+        double costoCanastaMes = vcm.second;
+        sumaPorAnho[anhoActual] += costoCanastaMes;
+        mesesPorAnho[anhoActual]++;             //------------> todo Verificar si la cantidad de meses obtenidos es correcto
     }
     /*--- Fin ---*/
+    //En el siguiente for, lo que hacemos es recorrer cada año y dividirlo por la cantidad de meses para obtener el promedio
+    for(auto& spa : sumaPorAnho){
+        int anhoActual = spa.first;
+        valorPromedioCanasta[anhoActual] = sumaPorAnho[anhoActual]/mesesPorAnho[anhoActual];
+    }
+    
+    bool flag = false;
+    double canastaAnhoBase;
+    double canastaAnhoActual;
+    double variacionInteranual;
+    
+    for(auto& vpc : valorPromedioCanasta){
+        //Verificamos si es el primer año, si es el primer año, asignamos el año base
+        if(!flag){
+            canastaAnhoBase = vpc.second;
+            flag = true;
+        }
+        /*Calculamos la variación interanual*/
+        canastaAnhoActual = vpc.second;
+        variacionInteranual = ((canastaAnhoActual/canastaAnhoBase)-1)*100;
+        std::cout << vpc.first << " - Variación interanual: " << variacionInteranual << "%\t Canasta año actual: " << canastaAnhoActual << "\t Canasta año base: " << canastaAnhoBase << std::endl;
+        canastaAnhoBase = canastaAnhoActual;
+    }
 }
