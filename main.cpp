@@ -48,49 +48,67 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now(); //Iniciamos cronómetro
     /*--- Fin ---*/
     
-    /*--- Lectura archivo xlsx ---*/
-    std::cout << "-- Lectura excel --" << std::endl;
+    /*--- Variables ---*/
     std::map<std::pair<int,int>,double> penToClp;  //pair(anho,mes),pesos
     std::map<std::pair<int,int>,int> daysPerMonth; //pair(anho,mes),dias
-    std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
-    int startRow = 7;
-    int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
+    std::map<std::pair<int,int>,float> solesToPesos;
+    std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> MapaProductos;
     
-    while(true){
-        readExcelChunk(filename, startRow, chunkSize, penToClp, daysPerMonth);
-        if(startRow==3734){                                                                 //@todo: !!!VER ESTO!!!
-            break; // Termina si no hay más filas por leer
+    
+#pragma omp parallel sections
+    {
+#pragma omp section
+        {
+            /*--- Lectura archivo xlsx ---*/
+            std::cout << "-- Lectura excel --" << std::endl;
+            std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+            int startRow = 7;
+            int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
+            
+            while(true){
+                readExcelChunk(filename, startRow, chunkSize, penToClp, daysPerMonth);
+                if(startRow==3734){                                                                 //@todo: !!!VER ESTO!!!
+                    break; // Termina si no hay más filas por leer
+                }
+            }
+            /*--- Guardamos la transformación de moneda en un map ---*/
+            
+            insertValueInMap(penToClp, daysPerMonth, solesToPesos);
+            std::cout << "-- Excel listo --" << std::endl;
+            /*--- Fin ---*/
+        }
+#pragma omp section
+        {
+            /*--- Parseo CSV ---*/
+            /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
+            std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
+            sequentialParseCsv(archivo,MapaProductos);
+//    parallelParseCsv(archivo,MapaProductos);
+            /*--- Fin ---*/
         }
     }
-    /*--- Guardamos la transformación de moneda en un map ---*/
-    std::map<std::pair<int,int>,float> solesToPesos;
-    insertValueInMap(penToClp, daysPerMonth, solesToPesos);
-    std::cout << "-- Excel listo --" << std::endl;
-    /*--- Fin ---*/
-    
-    /*--- Parseo CSV ---*/
-    /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
-    std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> MapaProductos;
-    std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
-    sequentialParseCsv(archivo,MapaProductos);
-//    parallelParseCsv(archivo,MapaProductos);
-    /*--- Fin ---*/
-    
-    /*--- Obtención de la canasta básica para la variación intermensual ---*/
-    std::map <std::pair<int,int>, double> ValorCanastaMensual = filterBasicBasketForIntermensualVariation(MapaProductos);
-    /*--- Fin ---*/
-    
-    /*--- Obtención de la canasta básica para la variación interanual ---*/
-    std::map <std::pair<int,int>, double> ValorCanastaAnual = filterBasicBasketForInteranualVariation(MapaProductos);
-    /*--- Fin ---*/
-    
-    /*--- Calculamos la variación intermensual de la canasta básica ---*/
-    calculateIntermensualVariation(ValorCanastaMensual, solesToPesos);
-    /*--- Fin ---*/
-    
-    /*--- Calculamos la variación interanual de la canasta básica ---*/
-    calculateInteranualVariation(ValorCanastaAnual, solesToPesos);
-    /*--- Fin ---*/
+#pragma omp barrier
+#pragma omp parallel sections
+    {
+#pragma omp section
+        {
+            /*--- Obtención de la canasta básica para la variación intermensual ---*/
+            std::map <std::pair<int,int>, double> ValorCanastaMensual = filterBasicBasketForIntermensualVariation(MapaProductos);
+            /*--- Fin ---*/
+            /*--- Calculamos la variación intermensual de la canasta básica ---*/
+            calculateIntermensualVariation(ValorCanastaMensual, solesToPesos);
+            /*--- Fin ---*/
+        }
+#pragma omp section
+        {
+            /*--- Obtención de la canasta básica para la variación interanual ---*/
+            std::map <std::pair<int,int>, double> ValorCanastaAnual = filterBasicBasketForInteranualVariation(MapaProductos);
+            /*--- Fin ---*/
+            /*--- Calculamos la variación interanual de la canasta básica ---*/
+            calculateInteranualVariation(ValorCanastaAnual, solesToPesos);
+            /*--- Fin ---*/
+        }
+    }
     
     /*--- Finalizamos cronómetro ---*/
     auto end = std::chrono::high_resolution_clock::now();                             // Registrar el tiempo de finalización
