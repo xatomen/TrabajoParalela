@@ -172,77 +172,82 @@ void sequentialParseCsv(std::string& filename, std::unordered_map<std::string,st
     std::cout << "-- Parseo csv --" << std::endl;
     /*--- Lectura archivo csv ---*/
     std::fstream archivo(filename);
-    std::string linea;
-    char delimitador = ';';
-    char comilla = '\"';
-    getline(archivo, linea);    //Leemos el "encabezado" del texto
-    
-    /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
-    
-    /*--- Declaramos las variables ---*/
-    int anho, mes;
-    int quantity;
-    float amount;
-    std::string sku;
-    std::string name;
-    std::string strQuantity;
-    std::string fecha;
-    std::string strAmount;
-    /*--- Fin ---*/
-    /*---- Cargamos la línea en memoria como stream ----*/
-    std::stringstream stream;     //Creamos una variable stringstream con el contenido de la línea
-    
-    int i = 0;
-    while(getline(archivo,linea)){
-        stream.clear();
-        stream.str(linea);
-        /*--- Extraemos los datos de la línea leída ---*/
-        getline(stream,fecha,delimitador);                     //Obtenemos la fecha en ISO de la compra
-        /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
-        getline(stream,linea,delimitador);
-        getline(stream,linea,delimitador);
-        getline(stream,linea,delimitador);
-        getline(stream,linea,delimitador);
-        getline(stream,linea,delimitador);
-        getline(stream,sku,delimitador);                       //Obtenemos el Sku del producto comprado
-        getline(stream,strQuantity,delimitador);              //Cantidad
-        /*Para el campo nombre:
-         * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
-         * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)*/
-        if(linea[0]==comilla){
-            getline(stream,name, comilla);                     //Buscamos las primeras comillas
-            getline(stream,name, comilla);                     //Buscamos las segundas comillas
-            /*Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar*/
-            while(!stream.good()){                                         //Mientras el stream no sea correcto, no saldremos del while
-                i++;                                                       //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
-                getline(archivo,linea);                              //Saltamos a la siguiente línea
-                stream.clear();                                            //Limpiamos el stream
-                stream.str(linea);                                      //Asignamos la nueva línea
-                getline(stream,name, comilla);                 //Volvemos a buscar la comilla faltante
-            }
-        }
-        getline(stream,name,delimitador);                      //Obtenemos el nombre del producto
-        getline(stream,strAmount,delimitador);                //Obtenemos el amount del producto
-        /*--- Fin ---*/
-        
-        /*--- Asignamos la información extraída ---*/
-        anho = stoi(fecha.substr(1,4));                                                 //Extraer el año
-        mes = stoi(fecha.substr(6,2));                                                  //Extraer el mes
-        quantity = stoi(strQuantity.substr(1,strQuantity.length()-2));                  //Debemos eliminar las comillas del string para transformarlo en float
-        amount = stof(strAmount.substr(1,strAmount.length()-2));                        //Debemos eliminar las comillas del string para transformarlo en float
-        /*--- Fin ---*/
-        
-        /*--- Ponemos los datos en el map anidado ---*/
-        if(mapaProductos[sku][anho][mes].empty()){              //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
-            mapaProductos[sku][anho][mes] = {0, 0};
-        }
-        mapaProductos[sku][anho][mes][0] += quantity;           //Sumamos la cantidad de veces que se compró el producto en ese mes
-        mapaProductos[sku][anho][mes][1] += (amount*quantity);  //Sumamos el precio total de la compra (cantidad de veces que se compró por el precio unitario
-        /*--- Con lo anterior, podemos obtener el precio promedio del sku en ese año y en ese mes al realizar la división sin la necesidad de tener la cantidad de días ---*/
-        i++;                                                    //Incrementamos el contador
+    if(!archivo){
+        std::cout << "--- No se encontró la ruta del archivo ---" << std::endl;
     }
-    archivo.close();
-    std::cout << std::endl;
+    else{
+        std::string linea;
+        char delimitador = ';';
+        char comilla = '\"';
+        getline(archivo, linea);    //Leemos el "encabezado" del texto
+        
+        /*Parseo del archivo csv, utilizando únicamente los campos relevantes*/
+        
+        /*--- Declaramos las variables ---*/
+        int anho, mes;
+        int quantity;
+        float amount;
+        std::string sku;
+        std::string name;
+        std::string strQuantity;
+        std::string fecha;
+        std::string strAmount;
+        /*--- Fin ---*/
+        /*---- Cargamos la línea en memoria como stream ----*/
+        std::stringstream stream;     //Creamos una variable stringstream con el contenido de la línea
+        
+        int i = 0;
+        while(getline(archivo,linea)){
+            stream.clear();
+            stream.str(linea);
+            /*--- Extraemos los datos de la línea leída ---*/
+            getline(stream,fecha,delimitador);                     //Obtenemos la fecha en ISO de la compra
+            /*Nos saltamos los siguientes cinco campos que no utilizaremos por el momento*/
+            getline(stream,linea,delimitador);
+            getline(stream,linea,delimitador);
+            getline(stream,linea,delimitador);
+            getline(stream,linea,delimitador);
+            getline(stream,linea,delimitador);
+            getline(stream,sku,delimitador);                       //Obtenemos el Sku del producto comprado
+            getline(stream,strQuantity,delimitador);              //Cantidad
+            /*Para el campo nombre:
+             * Si no tiene nombre, no tiene comillas, por lo tanto, solo buscamos el siguiente delimitador
+             * Si el siguiente carácter es una comilla, tiene nombre, por lo que buscamos la siguiente comilla y luego, buscamos el delimitador (para evitar tomar un ";" dentro del nombre del producto)*/
+            if(linea[0]==comilla){
+                getline(stream,name, comilla);                     //Buscamos las primeras comillas
+                getline(stream,name, comilla);                     //Buscamos las segundas comillas
+                /*Si no se encuentran las segundas comillas, entonces deberemos saltar de línea y continuar*/
+                while(!stream.good()){                                         //Mientras el stream no sea correcto, no saldremos del while
+                    i++;                                                       //Aumentamos el contador de filas porque saltaremos a la siguiente línea (para evitar inconsistencias con el while anterior)
+                    getline(archivo,linea);                              //Saltamos a la siguiente línea
+                    stream.clear();                                            //Limpiamos el stream
+                    stream.str(linea);                                      //Asignamos la nueva línea
+                    getline(stream,name, comilla);                 //Volvemos a buscar la comilla faltante
+                }
+            }
+            getline(stream,name,delimitador);                      //Obtenemos el nombre del producto
+            getline(stream,strAmount,delimitador);                //Obtenemos el amount del producto
+            /*--- Fin ---*/
+            
+            /*--- Asignamos la información extraída ---*/
+            anho = stoi(fecha.substr(1,4));                                                 //Extraer el año
+            mes = stoi(fecha.substr(6,2));                                                  //Extraer el mes
+            quantity = stoi(strQuantity.substr(1,strQuantity.length()-2));                  //Debemos eliminar las comillas del string para transformarlo en float
+            amount = stof(strAmount.substr(1,strAmount.length()-2));                        //Debemos eliminar las comillas del string para transformarlo en float
+            /*--- Fin ---*/
+            
+            /*--- Ponemos los datos en el map anidado ---*/
+            if(mapaProductos[sku][anho][mes].empty()){              //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
+                mapaProductos[sku][anho][mes] = {0, 0};
+            }
+            mapaProductos[sku][anho][mes][0] += quantity;           //Sumamos la cantidad de veces que se compró el producto en ese mes
+            mapaProductos[sku][anho][mes][1] += (amount*quantity);  //Sumamos el precio total de la compra (cantidad de veces que se compró por el precio unitario
+            /*--- Con lo anterior, podemos obtener el precio promedio del sku en ese año y en ese mes al realizar la división sin la necesidad de tener la cantidad de días ---*/
+            i++;                                                    //Incrementamos el contador
+        }
+        archivo.close();
+        std::cout << std::endl;
+    }
 }
 
 std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal){
