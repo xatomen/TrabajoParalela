@@ -34,11 +34,16 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
 void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& ValorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos);
 void calculateInteranualVariation(std::map <std::pair<int,int>, double>& ValorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos);
 
-int main() {
+int main(int argc, char *argv[]) {
     
     /*--- Iniciamos cronómetro ---*/
     auto start = std::chrono::high_resolution_clock::now(); //Iniciamos cronómetro
     /*--- Fin ---*/
+    
+    if (argc < 3) {
+        std::cerr << "Uso: " << argv[0] << " <ruta_al_archivo_csv> <ruta_al_archivo_xlsx>" << std::endl;
+        return 1;
+    }
     
     /*--- Variables ---*/
     std::map<std::pair<int,int>,double> penToClp;  //pair(anho,mes),pesos
@@ -52,7 +57,8 @@ int main() {
         {
             /*--- Lectura archivo xlsx ---*/
             std::cout << "-- Lectura excel --" << std::endl;
-            std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+//            std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+            std::string filename = argv[1];
             int startRow = 7;
             int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
             
@@ -72,7 +78,8 @@ int main() {
         {
             /*--- Parseo CSV ---*/
             /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
-            std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
+//            std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
+            std::string archivo = argv[2];
             sequentialParseCsv(archivo,MapaProductos);
             /*--- Fin ---*/
         }
