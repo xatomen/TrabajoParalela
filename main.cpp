@@ -22,7 +22,6 @@
 #include <chrono>
 #include <unordered_map>
 
-using namespace std;
 using namespace libxl;
 
 /*--- Prototipo de funciones ---*/
@@ -40,15 +39,19 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now(); //Iniciamos cronómetro
     /*--- Fin ---*/
     
-    if (argc < 3) {
-        std::cerr << "Uso: " << argv[0] << " <ruta_al_archivo_csv> <ruta_al_archivo_xlsx>" << std::endl;
-        return 1;
-    }
+//    if(argc<3){
+//        std::cerr << "Uso: " << argv[0] << " <ruta_al_archivo_csv> <ruta_al_archivo_xlsx>" << std::endl;
+//        return 1;
+//    }
     
-    /*--- Variables ---*/
-    std::map<std::pair<int,int>,double> penToClp;  //pair(anho,mes),pesos
-    std::map<std::pair<int,int>,int> daysPerMonth; //pair(anho,mes),dias
-    std::map<std::pair<int,int>,float> solesToPesos;
+    /*--- Mapas ---*/
+    std::map<std::pair<int,int>,double> penToClp;       //Mapa que permite guardar la suma en pesos chilenos de cada día de cada mes de la transformación SOL->CLP <pair(anho,mes),pesos>
+    std::map<std::pair<int,int>,int> daysPerMonth;      //Mapa que permite guardar la cantidad de días de cada mes de la transformación SOL->CLP <pair(anho,mes),dias>
+    std::map<std::pair<int,int>,float> solesToPesos;    //Mapa que contiene la transformación SOL->CLP promedio de cada mes
+    
+    /*--- Este unordered map aloja cada sku, en donde cada sku está asociado a un mapa que contiene el año, y cada año tiene asociado un mapa que contiene los meses,   ---*/
+    /*--- y cada mes tiene asociado un vector que aloja dos datos, el primero es la cantidad de veces que se compró el sku en el mes                                    ---*/
+    /*--- y el segundo es la suma total en soles de cada mes, estos dos últimos valores son para obtener el precio promedio del sku de cada mes de cada año             ---*/
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> mapaProductos;
     
 #pragma omp parallel sections
@@ -57,20 +60,21 @@ int main(int argc, char *argv[]) {
         {
             /*--- Lectura archivo xlsx ---*/
             std::cout << "-- Lectura excel --" << std::endl;
-            std::string filename = "/home/jorge/Escritorio/Proyectos/TrabajoParalela/PEN_CLP.xlsx";
+            std::string filename = "/home/jorge/Escritorio/Proyectos/Datos/Datos históricos PEN_CLP.xlsx";
 //            std::string filename = argv[1];
             int startRow = 7;
             int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
             
             while(true){
                 readExcelChunk(filename, startRow, chunkSize, penToClp, daysPerMonth);
-                if(startRow==3734){                                                                 //@todo: !!!VER ESTO!!!
-                    break; // Termina si no hay más filas por leer
+                if(startRow==0){    //Si termina el startRow queda en 0 al iterar, entonces hemos finalizado de leer el excel
+                    break;          // Termina si no hay más filas por leer
                 }
             }
-            /*--- Guardamos la transformación de moneda en un map ---*/
             
+            /*--- Guardamos la transformación de moneda en un map ---*/
             insertValueInMap(penToClp, daysPerMonth, solesToPesos);
+            /*--- Imprimimos la transformación de moneda por mes ---*/
             std::cout << "-- Excel listo --" << std::endl;
             /*--- Fin ---*/
         }
@@ -90,6 +94,7 @@ int main(int argc, char *argv[]) {
 #pragma omp section
         {
             /*--- Obtención de la canasta básica para la variación intermensual ---*/
+            /*--- Este mapa contiene la suma de los precios promedio de cada producto en cada año-mes ---*/
             std::map <std::pair<int,int>, double> valorCanastaMensual = filterBasicBasketForIntermensualVariation(mapaProductos);
             /*--- Fin ---*/
             /*--- Calculamos la variación intermensual de la canasta básica ---*/
@@ -99,6 +104,7 @@ int main(int argc, char *argv[]) {
 #pragma omp section
         {
             /*--- Obtención de la canasta básica para la variación interanual ---*/
+            /*--- Este mapa contiene la suma de los precios promedio de cada producto en cada año-mes ---*/
             std::map <std::pair<int,int>, double> valorCanastaAnual = filterBasicBasketForInteranualVariation(mapaProductos);
             /*--- Fin ---*/
             /*--- Calculamos la variación interanual de la canasta básica ---*/
@@ -118,31 +124,42 @@ int main(int argc, char *argv[]) {
 
 void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth){
     Book* book = xlCreateXMLBook();
+    bool flag = false;  //Avisa si hemos terminado de leer el excel
     if(book){
         if(book->load(filename.c_str())){ // Carga el archivo Excel
             Sheet* sheet = book->getSheet(0); // Obtiene la primera hoja
             if(sheet){
                 int rowCount = sheet->lastRow(); // Obtiene el número de filas
                 int endRow = std::min(startRow + chunkSize, rowCount); // Determina la última fila a leer en este chunk
-                for(int row = startRow; row <= endRow; ++row){ // Itera sobre las filas
-                    double dateValue = sheet->readNum(row, 0);
-                    int year, month, day;
-                    book->dateUnpack(dateValue, &year, &month, &day);
-                    double num = sheet->readNum(row, 1); // Lee el contenido de la celda en la segunda columna como número
-                    
-                    //Ingresamos el dato en el mapa PEN_CLP
-                    std::pair<int,int> fecha(year,month);
-                    if (penToClp.count(fecha) > 0) {
-                        penToClp[fecha] += num; // Cantidad de productos
-                        daysPerMonth[fecha]+=1;
+                /*--- Leemos las filas del excel desde donde indiquemos ---*/
+                for(int row = startRow; row <= endRow; ++row){      //Itera sobre las filas
+                    double dateValue = sheet->readNum(row, 0);  //Obtenemos la fecha
+                    int year, month, day;                           //Declaramos las variables a utilizar en la fecha
+                    book->dateUnpack(dateValue, &year, &month, &day);   //Cambiamos el tipo de fecha excel a tres variables independientes
+                    double num = sheet->readNum(row, 1);    //Lee el contenido de la celda en la segunda columna como número
+                    if(num==0){                                 //Si el número a leer es igual a cero, indica que hemos terminado de leer el excel
+                        flag = true;                            //Cambiamos a true el flag
+                        break;                                  //Salimos del for
                     }
-                    else {
+                    //Ingresamos el dato en el mapa PEN_CLP
+                    std::pair<int,int> fecha(year,month); //Declaramos un par {año,mes} para insertarlo en los mapas
+                    if(penToClp.count(fecha) > 0){           //Si la clave ya existe, solo sumamos los datos
+                        penToClp[fecha] += num;                 //Sumamos la transformación de cada día del mes
+                        daysPerMonth[fecha]+=1;                 //Aumentamos la cantidad de días del mes
+                    }
+                    else{
                         // Si la clave no existe, crear una nueva entrada con la cantidad
-                        penToClp[fecha] = num;
-                        daysPerMonth[fecha]+=1;
+                        penToClp[fecha] = num;                  //Asignamos la primera transformación del mes
+                        daysPerMonth[fecha]+=1;                 //Aumentamos la cantidad de días
                     }
                 }
-                startRow = endRow;
+                if(flag){                                       //Si el flag es true, quiere decir que hemos terminado de leer
+                    startRow = 0;                               //Dejamos el startRow en 0 para avisar en el main que debemos dejar de iterar
+                }
+                else{
+                    startRow = endRow;                          //En caso contrario, no hemos finalizado, por lo que indicamos que debemos seguir leyendo en la última fila que quedamos
+                }
+                
             }
             else{
                 std::cerr << "Error: No se pudo abrir la hoja 0." << std::endl;
@@ -159,15 +176,18 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, s
     
 }
 
+/*--- Función que permite obtener el promedio mensual de la transformación de soles a pesos chilenos en un mapa ---*/
 void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos){
     auto pesos = penToClp.begin();
     auto dias = daysPerMonth.begin();
-    for(; pesos!=penToClp.end() && dias!=daysPerMonth.end(); pesos++, dias++){
-        std::pair<int,int> fecha(pesos->first.first,pesos->first.second);   //Asignamos el promedio de pesos a cada mes
+    /*--- En este for, iteramos sobre ambos mapas al mismo tiempo para obtener el promedio de la transformación en cada mes ---*/
+    for(; pesos!=penToClp.end() && dias!=daysPerMonth.end(); pesos++, dias++){    //Iteramos sobre ambos mapas
+        std::pair<int,int> fecha(pesos->first.first,pesos->first.second);   //Asignamos el promedio de pesos a cada mes en el mapa
         solesToPesos[fecha] = pesos->second/dias->second;
     }
 }
 
+/*--- Función que permite parsear línea a línea el archivo csv y guardar estos datos en un mapa ---*/
 void sequentialParseCsv(std::string& filename, std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductos){
     std::cout << "-- Parseo csv --" << std::endl;
     /*--- Lectura archivo csv ---*/
@@ -250,6 +270,7 @@ void sequentialParseCsv(std::string& filename, std::unordered_map<std::string,st
     }
 }
 
+/*--- Función que permite filtrar la canasta básica de cada año para calcular la variación intermensual ---*/
 std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal){
     std::cout << "--- Filtrado canasta básica intermensual ---" << std::endl;
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> mapaProductos = mapaProductosOriginal;
@@ -334,6 +355,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
     return valorCanastaMensual;
 }
 
+/*--- Función que permite filtrar la canasta básica común de todos los años para calcular la variación interanual ---*/
 std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal){
     std::cout << "--- Filtrado canasta básica interanual ---" << std::endl;
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> mapaProductos = mapaProductosOriginal;
@@ -341,13 +363,15 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     
     /*--- Crear un conjunto de fechas (años y meses) que se encontraron durante la lectura ---*/
     std::set<std::pair<int, int>> todasLasFechas;
-    for (const auto& sku : mapaProductos) {
-        for (const auto& anho : sku.second) {
-            for (const auto& mes : anho.second) {
+    /*--- Iteramos sobre el mapa de productos ---*/
+    for(const auto& sku : mapaProductos){
+        for(const auto& anho : sku.second){
+            for(const auto& mes : anho.second){
                 todasLasFechas.emplace(anho.first, mes.first);  //Ingresamos la fecha en el set
             }
         }
     }
+    /*--- Fin ---*/
     
     /*--- Verificar cada SKU y eliminar los que no estén presentes en todas las fechas de cada año ---*/
     for(auto skuIt = mapaProductos.begin(); skuIt != mapaProductos.end(); ){        //Iteramos sobre cada sku
@@ -403,6 +427,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     return valorCanastaMensual;
 }
 
+/*--- Función que permite calcular la variación intermensual de cada año ---*/
 void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& valorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos){
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
     std::cout << "--- Variación intermensual ---" << std::endl;
@@ -445,6 +470,7 @@ void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& valor
     std::cout << std::endl;
 }
 
+/*--- Función que permite calcular la variación interanual de los años en total ---*/
 void calculateInteranualVariation(std::map <std::pair<int,int>, double>& valorCanastaAnual, std::map<std::pair<int,int>,float>& solesToPesos){
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
     std::cout << "--- Variación interanual ---" << std::endl;
@@ -454,12 +480,10 @@ void calculateInteranualVariation(std::map <std::pair<int,int>, double>& valorCa
     bool flag = false;
     double varAcumulado = 0;
     double varAcumuladoClp = 0;
-    int anhoActual;
     //En el siguiente for, lo que hacemos es recorrer todos los meses y años del valor de canasta mensual
     for(auto& vcm : valorCanastaAnual){
         /*Si es el primer mes, lo usamos como mes base inicial*/
         if(!flag){                                                                                    //Si el flag es falso, entonces es el primer mes del primer año
-            anhoActual = vcm.first.first;                                                             //El año actual será el mes base
             mesBase = vcm.second;                                                                     //El mes base será el primer mes
             mesBaseClp = mesBase * solesToPesos[std::pair{vcm.first.first,vcm.first.second}];   //El mes base será el primer mes
             flag = true;                                                                              //Cambiamos el flag para que no volvamos a entrar a la condición
@@ -472,7 +496,7 @@ void calculateInteranualVariation(std::map <std::pair<int,int>, double>& valorCa
         varAcumuladoClp += variacionIntermensualClp;                            //Sumamos la variación
         std::cout << vcm.first.first << "/" << vcm.first.second << "\tVariación intermensual: " << variacionIntermensual << "%\tVariación acumulada: " << varAcumulado << "%\tCLP: " << solesToPesos[std::pair{vcm.first.first,vcm.first.second}] << "\tVariación intermensual CLP: " << variacionIntermensualClp << "%\tVariación acumulada: " << varAcumuladoClp << "%" << std::endl;
         mesBase = mesActual;                                                    //Actualizamos el mes base con el mes que acabamos de usar
-        mesBaseClp = mesActualClp;
+        mesBaseClp = mesActualClp;                                              //Actualizamos el mes base con el mes que acabamos de usar
     }
     std::cout << std::endl;
 }
