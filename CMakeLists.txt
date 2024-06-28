@@ -3,18 +3,14 @@ project(TrabajoParalela)
 
 set(CMAKE_CXX_STANDARD 17)
 
-#find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED)
 
-add_executable(TrabajoParalela main.cpp
-        Producto.cpp
-        Producto.h
-        Moneda.cpp
-        Moneda.h
-)
+add_executable(TrabajoParalela main.cpp)
 
 include_directories(libxl-4.3.0.14/include_cpp)
 target_link_libraries(TrabajoParalela
-        /home/jorge/Escritorio/Proyectos/TrabajoParalela/libxl-4.3.0.14/lib64/libxl.so
+        /home/jorge/Escritorio/Proyectos/TrabajoParalela/libxl-4.3.0.14/lib64/libxl.so OpenMP::OpenMP_CXX
+
 )
 
 #if(OpenMP_CXX_FOUND)
