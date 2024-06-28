@@ -54,7 +54,6 @@ int main() {
     std::map<std::pair<int,int>,float> solesToPesos;
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> MapaProductos;
     
-    
 #pragma omp parallel sections
     {
 #pragma omp section
@@ -240,8 +239,9 @@ void sequentialParseCsv(std::string& filename, std::unordered_map<std::string,st
         if(MapaProductos[sku][anho][mes].empty()){      //Si el campo está vacío, debemos inicializarlo en 0 para evitar errores después al incrementar y sumar
             MapaProductos[sku][anho][mes] = {0, 0};
         }
-        MapaProductos[sku][anho][mes][0] += quantity;
-        MapaProductos[sku][anho][mes][1] += (amount*quantity);
+        MapaProductos[sku][anho][mes][0] += quantity;           //Sumamos la cantidad de veces que se compró el producto en ese mes
+        MapaProductos[sku][anho][mes][1] += (amount*quantity);  //Sumamos el precio total de la compra (cantidad de veces que se compró por el precio unitario
+        /*--- Con lo anterior, podemos obtener el precio promedio del sku en ese año y en ese mes al realizar la división sin la necesidad de tener la cantidad de días ---*/
         i++;                                            //Incrementamos el contador
 //        if(i==5000000)break;
     }
@@ -333,6 +333,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
     /*--- Obtención canasta básica ---*/
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos antes de obtener la canasta básica para verificar ---*/
+    /*--- Es "similar" a "invertir" el map, antes era: sku->fecha, con este cambia a: fecha->sku ---*/
     std::map<std::pair<int,int>,std::map<std::string,int>> fechaSku1; //Mapa que contiene fecha (año, mes) y cada fecha tiene el sku
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
@@ -374,15 +375,17 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
             ++skuIt;                                                                        //Iteramos y pasamos al siguiente sku
         }
     }
+    /*--- Con lo anterior hemos filtrado la canasta básica ---*/
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
-    /*--- Con esto obtenemos la canasta básica por año ---*/
-    std::map<std::pair<int,int>,std::map<std::string,double>> fechaSku2; //Mapa que contiene fecha año, mes y cada fecha tiene el sku, el sku posee el valor promedio de ese sku en esa fecha
+    /*--- Con esto obtenemos la canasta básica por año, es decír: fecha->sku, o: fecha->canasta ---*/
+    std::map<std::pair<int,int>,std::map<std::string,double>> fechaSku2;      //Mapa que contiene fecha año, mes y cada fecha tiene el sku, el sku posee el valor promedio de ese sku en esa fecha
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
             for(const auto& Mes : Anho.second){
                 std::pair<int,int> fecha(Anho.first,Mes.first);         //Generamos un par valor que representa la fecha {año,mes}
                 fechaSku2[fecha][Sku.first] = Mes.second[1]/Mes.second[0];    //En cada SKU de cada año colocamos el valor promedio del SKU en esa fecha (año-mes)
+                /*--- Con lo anterior, tenemos el valor promedio de cada sku en cada fecha (año,mes) ---*/
             }
         }
     }
@@ -392,10 +395,17 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
     std::map <std::pair<int,int>, double> ValorCanastaMensual;
     
     /*--- Obtenemos el total de productos por fecha ---*/
+    int contador;
     for(auto& fecha : fechaSku2){
+        contador=0;
         for(auto& sku : fecha.second){
             ValorCanastaMensual[fecha.first] += sku.second;
+//            contador++;
+            /*--- Con esto obtenemos el valor de la canasta, en donde la canasta está formada por una unidad de cada sku ---*/
+            /*--- En donde cada sku que sumamos corresponde al valor promedio de ese sku en cada mes ---*/
+            /*--- Por lo tanto, cada fecha (año,mes) tendrá almacenado la misma cantidad de skus y la diferencia será la suma ---*/
         }
+//        std::cout << "IM" << fecha.first.first << "/" << fecha.first.second << "\tCantidad skus: " << contador << std::endl;
     }
     /*--- Fin ---*/
     /*--- Imprimimos el precio promedio de la canasta mensual*/
@@ -405,6 +415,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
 //    getchar();
     /*--- Fin ---*/
     std::cout << std::endl;
+    
     return ValorCanastaMensual;
 }
 
@@ -414,6 +425,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     /*--- Obtención canasta básica ---*/
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos antes de obtener la canasta básica para verificar ---*/
+    /*--- Es "similar" a "invertir" el map, antes era: sku->fecha, con este cambia a: fecha->sku ---*/
     std::map<std::pair<int,int>,std::map<std::string,int>> fechaSku1; //Mapa que contiene fecha (año, mes) y cada fecha tiene el sku
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
@@ -455,9 +467,10 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
         }
     }
     /*--- Fin ---*/
+    /*--- Con lo anterior hemos filtrado la canasta básica ---*/
     
     /*--- A cada fecha (año,mes), asignamos los SKUs obtenidos después de obtener la canasta básica para verificar ---*/
-    /*--- Con esto obtenemos la canasta básica por año ---*/
+    /*--- Con esto obtenemos la canasta básica por año, es decír: fecha->sku, o: fecha->canasta ---*/
     std::map<std::pair<int,int>,std::map<std::string,double>> fechaSku2; //Mapa que contiene fecha año, mes y cada fecha tiene el sku, el sku posee el valor promedio de ese sku en esa fecha
     for(const auto& Sku : MapaProductos){
         for(const auto& Anho : Sku.second){
@@ -471,15 +484,18 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
     
     /*--- Mapa del valor de la canasta mensual ---*/
     std::map <std::pair<int,int>, double> ValorCanastaMensual;
-//    int contador;
+    int contador;
     /*--- Obtenemos el total de productos por fecha ---*/
     for(auto& fecha : fechaSku2){
-//        contador=0;
+        contador=0;
         for(auto& sku : fecha.second){
             ValorCanastaMensual[fecha.first] += sku.second;
+            /*--- Con esto obtenemos el valor de la canasta, en donde la canasta está formada por una unidad de cada sku ---*/
+            /*--- En donde cada sku que sumamos corresponde al valor promedio de ese sku en cada mes ---*/
+            /*--- Por lo tanto, cada fecha (año,mes) tendrá almacenado la misma cantidad de skus y la diferencia será la suma ---*/
 //            contador++;
         }
-//        std::cout << fecha.first.first << "/" << fecha.first.second << "\tCantidad skus: " << contador << std::endl;
+//        std::cout << "IA" << fecha.first.first << "/" << fecha.first.second << "\tCantidad skus: " << contador << std::endl;
     }
 //    getchar();
     /*--- Fin ---*/
@@ -489,6 +505,7 @@ std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(st
 //    }
     /*--- Fin ---*/
     std::cout << std::endl;
+    
     return ValorCanastaMensual;
 }
 
