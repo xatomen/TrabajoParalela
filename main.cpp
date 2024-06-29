@@ -39,11 +39,6 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now(); //Iniciamos cronómetro
     /*--- Fin ---*/
     
-//    if(argc<3){
-//        std::cerr << "Uso: " << argv[0] << " <ruta_al_archivo_csv> <ruta_al_archivo_xlsx>" << std::endl;
-//        return 1;
-//    }
-    
     /*--- Mapas ---*/
     std::map<std::pair<int,int>,double> penToClp;       //Mapa que permite guardar la suma en pesos chilenos de cada día de cada mes de la transformación SOL->CLP <pair(anho,mes),pesos>
     std::map<std::pair<int,int>,int> daysPerMonth;      //Mapa que permite guardar la cantidad de días de cada mes de la transformación SOL->CLP <pair(anho,mes),dias>
@@ -60,8 +55,7 @@ int main(int argc, char *argv[]) {
         {
             /*--- Lectura archivo xlsx ---*/
             std::cout << "-- Lectura excel --" << std::endl;
-            std::string filename = "/home/jorge/Escritorio/Proyectos/Datos/Datos históricos PEN_CLP.xlsx";
-//            std::string filename = argv[1];
+            std::string filename = argv[1];
             int startRow = 7;
             int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
             
@@ -82,8 +76,7 @@ int main(int argc, char *argv[]) {
         {
             /*--- Parseo CSV ---*/
             /*Utilizamos un mapa anidado que nos permita almacenar el SKU, y para cada SKU almacenar los años, y para cada fecha de cada SKU almacenar los meses, finalmente, se tiene un contador y la suma mensual del sku*/
-            std::string archivo = "/home/jorge/Escritorio/Proyectos/Datos/pd.csv";
-//            std::string archivo = argv[2];
+            std::string archivo = argv[2];
             sequentialParseCsv(archivo,mapaProductos);
             /*--- Fin ---*/
         }
