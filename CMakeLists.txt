@@ -5,14 +5,22 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(OpenMP REQUIRED)
 
-add_executable(TrabajoParalela main.cpp)
-
-include_directories(libxl-4.3.0.14/include_cpp)
-target_link_libraries(TrabajoParalela
-        /home/jorge/Escritorio/Proyectos/TrabajoParalela/libxl-4.3.0.14/lib64/libxl.so OpenMP::OpenMP_CXX
-
+add_executable(
+        TrabajoParalela
+        src/main.cpp
+        src/read.cpp
+        include/read.h
+        src/filterBasicBasket.cpp
+        include/filterBasicBasket.h
+        src/calculateVariation.cpp
+        include/calculateVariation.h
 )
 
-#if(OpenMP_CXX_FOUND)
-#    target_link_libraries(TrabajoParalela PUBLIC OpenMP::OpenMP_CXX libxl-4.3.0.14/lib64/libxl.so)
-#endif()
+set(LIBXL_BASE_DIR "${CMAKE_SOURCE_DIR}/include/libxl-4.3.0.14")
+include_directories(${LIBXL_BASE_DIR}/include_cpp)
+
+target_link_libraries(
+        TrabajoParalela
+        ${LIBXL_BASE_DIR}/lib64/libxl.so
+        OpenMP::OpenMP_CXX
+)
