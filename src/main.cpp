@@ -12,25 +12,14 @@
  * ----------------------------------------------------*/
 
 #include <iostream>
-#include <vector>
-#include <fstream>
-#include <sstream>
 #include <map>
-#include <set>
 #include <chrono>
 #include <unordered_map>
-#include "../include/libxl-4.3.0.14/include_cpp/libxl.h"
+#include <omp.h>
 
 #include "../include/filterBasicBasket.h"
 #include "../include/read.h"
 #include "../include/calculateVariation.h"
-
-
-
-/*--- Prototipo de funciones ---*/
-
-
-
 
 int main(int argc, char *argv[]) {
     
@@ -80,6 +69,7 @@ int main(int argc, char *argv[]) {
             /*--- Fin ---*/
         }
     }
+    /*--- Utilizamos un barrier para determinar que se deben terminar las secciones anteriores por completo para avanzar ---*/
 #pragma omp barrier
 #pragma omp parallel sections
     {

@@ -1,9 +1,11 @@
-//
-// Created by jorge on 14/07/24.
-//
+/*
+ Funciones de lectura del programa, es decir, la lectura del archivo CSV y la lectura del archivo XLSX
+ */
 
 #include "../include/read.h"
 
+/*--- Función que lee un archivo excel (XLSX) por bloques de un tamaño indicado por parámetros en el main ---*/
+/*--- La transformación de soles a pesos chilenos se guardan en mapas para luego obtener el promedio de cada mes en otro mapa---*/
 void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth){
     Book* book = xlCreateXMLBook();
     bool flag = false;  //Avisa si hemos terminado de leer el excel
@@ -59,6 +61,7 @@ void readExcelChunk(const std::string& filename, int& startRow, int chunkSize, s
 }
 
 /*--- Función que permite obtener el promedio mensual de la transformación de soles a pesos chilenos en un mapa ---*/
+/*--- Para ello se utilizan los dos mapas de la función anterior ---*/
 void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<std::pair<int,int>,int>& daysPerMonth, std::map<std::pair<int,int>,float>& solesToPesos){
     auto pesos = penToClp.begin();
     auto dias = daysPerMonth.begin();

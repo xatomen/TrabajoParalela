@@ -1,16 +1,12 @@
-//
-// Created by jorge on 14/07/24.
-//
+/*
+ Header que contiene las funciones de filtrado de la canasta básica intermensual e interanual
+ */
 
 #include <iostream>
 #include <vector>
-#include <fstream>
-#include <sstream>
 #include <map>
 #include <set>
-#include <chrono>
 #include <unordered_map>
-#include "../include/libxl-4.3.0.14/include_cpp/libxl.h"
 
 #ifndef TRABAJOPARALELA_FILTERBASICBASKET_H
 #define TRABAJOPARALELA_FILTERBASICBASKET_H

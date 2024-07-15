@@ -1,16 +1,13 @@
-//
-// Created by jorge on 14/07/24.
-//
+/*
+ Header que contiene las funciones del cálculo de la variación intermensual e interanual en soles y en pesos chilenos
+ */
 
 #include <iostream>
 #include <vector>
-#include <fstream>
-#include <sstream>
 #include <map>
 #include <set>
-#include <chrono>
 #include <unordered_map>
-#include "../include/libxl-4.3.0.14/include_cpp/libxl.h"
+#include <omp.h>
 
 #ifndef TRABAJOPARALELA_CALCULATEVARIATION_H
 #define TRABAJOPARALELA_CALCULATEVARIATION_H

@@ -1,13 +1,17 @@
-//
-// Created by jorge on 14/07/24.
-//
+/*
+ Funciones del cálculo de la variación intermensual e interanual en soles y en pesos chilenos
+ */
 
 #include "../include/calculateVariation.h"
 
 /*--- Función que permite calcular la variación intermensual de cada año ---*/
 void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& valorCanastaMensual, std::map<std::pair<int,int>,float>& solesToPesos){
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
-    std::cout << "--- Variación intermensual ---" << std::endl;
+/*--- Sincronizamos el mensaje ---*/
+#pragma omp critical
+    {
+        std::cout << "--- Variación intermensual ---" << std::endl;
+    }
     //Inicializamos algunas variables que utilizaremos
     double mesBase;
     double mesBaseClp;
@@ -50,7 +54,11 @@ void calculateIntermensualVariation(std::map <std::pair<int,int>, double>& valor
 /*--- Función que permite calcular la variación interanual de los años en total ---*/
 void calculateInteranualVariation(std::map <std::pair<int,int>, double>& valorCanastaAnual, std::map<std::pair<int,int>,float>& solesToPesos){
 /*--- Calculamos la variación intermensual de la canasta básica ---*/
-    std::cout << "--- Variación interanual ---" << std::endl;
+/*--- Sincronizamos el mensaje ---*/
+#pragma omp critical
+    {
+        std::cout << "--- Variación interanual ---" << std::endl;
+    }
     //Inicializamos algunas variables que utilizaremos
     double mesBase;
     double mesBaseClp;

@@ -1,16 +1,15 @@
-//
-// Created by jorge on 14/07/24.
-//
+/*
+ Header que contiene las funciones de lectura del programa, es decir, la lectura del archivo CSV y la lectura del archivo XLSX
+ */
 
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <map>
-#include <set>
-#include <chrono>
 #include <unordered_map>
 #include "../include/libxl-4.3.0.14/include_cpp/libxl.h"
+
 using namespace libxl;
 
 #ifndef TRABAJOPARALELA_READ_H
