@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <omp.h>
 #include <unordered_map>
 
 #ifndef TRABAJOPARALELA_FILTERBASICBASKET_H

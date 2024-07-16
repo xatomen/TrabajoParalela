@@ -74,7 +74,10 @@ void insertValueInMap(std::map<std::pair<int,int>,double>& penToClp, std::map<st
 
 /*--- Función que permite parsear línea a línea el archivo csv y guardar estos datos en un mapa ---*/
 void sequentialParseCsv(std::string& filename, std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductos){
-    std::cout << "-- Parseo csv --" << std::endl;
+#pragma omp critical
+    {
+        std::cout << "-- Parseo csv --" << std::endl;
+    }
     /*--- Lectura archivo csv ---*/
     std::fstream archivo(filename);
     if(!archivo){

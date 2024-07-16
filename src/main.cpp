@@ -3,7 +3,7 @@
  *
  * Asignatura: Computación paralela y distribuida
  * Sección: 411
- * Profesor: Sebastian Salazar Molina
+ * Profesor: Sebastián Salazar Molina
  *
  * Integrantes: - Jorge Luis Gallardo Contreras
  *              - Fernando Tomás Maldonado Rodríguez
@@ -42,7 +42,10 @@ int main(int argc, char *argv[]) {
 #pragma omp section
         {
             /*--- Lectura archivo xlsx ---*/
-            std::cout << "-- Lectura excel --" << std::endl;
+#pragma omp critical
+            {
+                std::cout << "-- Lectura excel --" << std::endl;
+            }
             std::string filename = argv[1];
             int startRow = 7;
             int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <omp.h>
 #include <unordered_map>
 #include "../include/libxl-4.3.0.14/include_cpp/libxl.h"
 

@@ -6,7 +6,10 @@
 
 /*--- Función que permite filtrar la canasta básica de cada año para calcular la variación intermensual ---*/
 std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal){
-    std::cout << "--- Filtrado canasta básica intermensual ---" << std::endl;
+#pragma omp critical
+    {
+        std::cout << "--- Filtrado canasta básica intermensual ---" << std::endl;
+    }
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> mapaProductos = mapaProductosOriginal;    //Copiamos el mapa para no afectar el original
     /*--- Obtención canasta básica ---*/
     
@@ -93,7 +96,10 @@ std::map <std::pair<int,int>, double> filterBasicBasketForIntermensualVariation(
 
 /*--- Función que permite filtrar la canasta básica común de todos los años para calcular la variación interanual ---*/
 std::map <std::pair<int,int>, double> filterBasicBasketForInteranualVariation(std::unordered_map<std::string,std::map<int,std::map<int,std::vector<float>>>>& mapaProductosOriginal){
-    std::cout << "--- Filtrado canasta básica interanual ---" << std::endl;
+#pragma omp critical
+    {
+        std::cout << "--- Filtrado canasta básica interanual ---" << std::endl;
+    }
     std::unordered_map<std::string, std::map<int, std::map<int, std::vector<float>>>> mapaProductos = mapaProductosOriginal;    //Copiamos el mapa para no afectar el original
     /*--- Obtención canasta básica ---*/
     

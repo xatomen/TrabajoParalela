@@ -2,7 +2,7 @@ Asignatura: Computación paralela y distribuida
 
 Sección: 411
 
-Profesor: Sebastian Salazar Molina
+Profesor: Sebastián Salazar Molina
 
 Desarrollado por:
 
