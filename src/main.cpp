@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "-- Lectura excel --" << std::endl;
             }
             std::string filename = argv[1];
-            int startRow = 7;
+            int startRow = 7;       //El primer dato comienza en la fila 7
             int chunkSize = 100;    //Leemos de 100 en 100 para evitar errores en la lectura
             
             while(true){
